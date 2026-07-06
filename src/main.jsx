@@ -5,6 +5,7 @@ import "./style.css";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const publicSiteUrl = (import.meta.env.VITE_PUBLIC_SITE_URL || "https://rolling-paper-plum.vercel.app").replace(/\/$/, "");
 
 const supabase =
   supabaseUrl && supabaseAnonKey
@@ -660,7 +661,7 @@ function App() {
 
   async function copyPublicLink() {
     if (!currentTrack) return;
-    const link = `${window.location.origin}${window.location.pathname}#/t/${safeEncodeRoutePart(currentTrack.id)}`;
+    const link = `${publicSiteUrl}/#/t/${safeEncodeRoutePart(currentTrack.id)}`;
     const copied = await copyTextToClipboard(link);
 
     if (copied) {
