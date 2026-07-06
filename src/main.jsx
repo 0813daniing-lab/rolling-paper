@@ -853,6 +853,8 @@ function CreateTrack({ profile, setView, createTrack }) {
 }
 
 function AdminTrack({ track, copyPublicLink, setPreviewOpen, setView, openStudent, setNameModal, setConfirm, deleteStudent }) {
+  const groupedPeople = groupPeopleByRole(track.students || []);
+
   return (
     <main className="app">
       <header className="minimal-top">
@@ -870,30 +872,51 @@ function AdminTrack({ track, copyPublicLink, setPreviewOpen, setView, openStuden
         <div className="doc-rule"></div>
         <h3>참여자 관리</h3>
         <p>튜터, 매니저, 수강생을 추가, 수정, 삭제할 수 있습니다. 이름을 누르면 편지 작성 및 받은 편지 확인 페이지로 이동합니다.</p>
-        <div className="grid person-grid" style={{ marginTop: 18 }}>
+
+        <div className="grid person-grid add-person-grid" style={{ marginTop: 18 }}>
           <article className="add-card" onClick={() => setNameModal({ type: "add" })}>
             <div><div className="plus">+</div><h3>참여자 추가</h3><p>역할과 이름을 추가하려면 여기를 누르세요.</p></div>
           </article>
-          {sortPeople(track.students).map((student) => (
-            <article className="track-card" key={student.id} onClick={() => openStudent(student)}>
-              <RoleBadge role={student.role} />
-              <h3>{student.name}</h3>
-              <p>클릭하면 작성 폼과 받은 편지를 확인합니다.</p>
-              <div className="student-admin-actions">
-                <button className="btn soft" onClick={(e) => {
-                  e.stopPropagation();
-                  setNameModal({ type: "edit", student });
-                }}>이름 수정</button>
-                <button className="btn danger" onClick={(e) => {
-                  e.stopPropagation();
-                  setConfirm({
-                    title: "참여자 삭제 확인",
-                    message: `${student.name}님을 진짜 삭제할까요?`,
-                    action: () => deleteStudent(student),
-                  });
-                }}>삭제</button>
+        </div>
+
+        <div className="role-section-list">
+          {ROLE_LABELS.map((role) => (
+            <section className="role-section-block" key={role}>
+              <div className="role-section-head">
+                <div className="role-section-title-wrap">
+                  <span className="role-section-title">{role}</span>
+                  <span className="role-section-meta">{groupedPeople[role].length}명</span>
+                </div>
               </div>
-            </article>
+              <div className="role-divider"></div>
+              {groupedPeople[role].length ? (
+                <div className="grid person-grid role-person-grid">
+                  {groupedPeople[role].map((student) => (
+                    <article className="track-card" key={student.id} onClick={() => openStudent(student)}>
+                      <RoleBadge role={student.role} />
+                      <h3>{student.name}</h3>
+                      <p>클릭하면 작성 폼과 받은 편지를 확인합니다.</p>
+                      <div className="student-admin-actions">
+                        <button className="btn soft" onClick={(e) => {
+                          e.stopPropagation();
+                          setNameModal({ type: "edit", student });
+                        }}>이름 수정</button>
+                        <button className="btn danger" onClick={(e) => {
+                          e.stopPropagation();
+                          setConfirm({
+                            title: "참여자 삭제 확인",
+                            message: `${student.name}님을 진짜 삭제할까요?`,
+                            action: () => deleteStudent(student),
+                          });
+                        }}>삭제</button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="empty role-empty">아직 등록된 {role}가 없습니다.</div>
+              )}
+            </section>
           ))}
         </div>
       </div>
@@ -936,16 +959,33 @@ function PublicShell({ view, track, student, openStudent, back, submitLetter, se
           <div className="doc-rule"></div>
           <h3>편지를 남길 사람</h3>
           <p>이름을 누르면 바로 편지를 쓰고, 받은 편지를 확인할 수 있습니다.</p>
-          <div className="grid person-grid" style={{ marginTop: 18 }}>
-            {sortPeople(track.students).map((item) => (
-              <article className="person-card" key={item.id} onClick={() => openStudent(item)}>
-                <div>
-                  <RoleBadge role={item.role} />
-                  <div className="person-name">{item.name}</div>
-                  <div className="hint">클릭해서 편지 쓰기</div>
-                </div>
-              </article>
-            ))}
+          <div className="role-section-list public-role-sections" style={{ marginTop: 18 }}>
+            {ROLE_LABELS.map((role) => {
+              const items = groupPeopleByRole(track.students || [])[role];
+              if (!items.length) return null;
+
+              return (
+                <section className="role-section-block" key={role}>
+                  <div className="role-section-head">
+                    <div className="role-section-title-wrap">
+                      <span className="role-section-title">{role}</span>
+                    </div>
+                  </div>
+                  <div className="role-divider"></div>
+                  <div className="grid person-grid role-person-grid">
+                    {items.map((item) => (
+                      <article className="person-card" key={item.id} onClick={() => openStudent(item)}>
+                        <div>
+                          <RoleBadge role={item.role} />
+                          <div className="person-name">{item.name}</div>
+                          <div className="hint">클릭해서 편지 쓰기</div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
           </div>
         </article>
       </section>

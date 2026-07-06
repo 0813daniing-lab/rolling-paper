@@ -122,6 +122,54 @@ p { color: var(--muted); line-height: 1.65; margin: 10px 0 0; }
 .side-preview-rule { height: 1px; background: var(--line); margin: 28px 0; }
 body.preview-open { overflow: hidden; }
 
+.add-person-grid {
+  margin-bottom: 22px;
+}
+.role-section-list {
+  display: grid;
+  gap: 26px;
+}
+.role-section-block {
+  display: grid;
+  gap: 14px;
+}
+.role-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.role-section-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.role-section-title {
+  font-size: 20px;
+  font-weight: 950;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+.role-section-meta {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+.role-divider {
+  height: 1px;
+  background: var(--line);
+}
+.role-person-grid {
+  margin-top: 2px;
+}
+.role-empty {
+  margin-top: 0;
+}
+.public-role-sections {
+  gap: 22px;
+}
+
 @media (max-width: 860px) {
   .login-layout, .split { grid-template-columns: 1fr; }
   .hero { min-height: auto; }
