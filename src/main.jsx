@@ -1282,13 +1282,6 @@ function PublicPageLayout({ track, student, children }) {
               ? `${track.title} 페이지입니다. 이름과 내용을 입력해 편지를 남겨주세요.`
               : track.description || "함께한 동료에게 마지막 인사를 남겨주세요."}
           </p>
-          {!student && (
-            <div className="public-count-row">
-              {ROLE_LABELS.map((role) => (
-                <span className={`count-chip count-${roleType(role)}`} key={role}>{role} {counts[role]}명</span>
-              ))}
-            </div>
-          )}
           <div className="doc-rule"></div>
           {children}
         </article>

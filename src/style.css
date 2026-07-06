@@ -1532,3 +1532,53 @@ body.preview-open { overflow: hidden; }
 .admin-overall-card .sticky-board-shell {
   margin-top: 14px;
 }
+
+
+/* Public page tab polish */
+.public-doc .public-count-row {
+  display: none !important;
+}
+
+.public-doc .doc-rule {
+  margin: 20px 0 16px;
+}
+
+.public-tabs {
+  margin: 0 0 24px;
+  padding: 6px;
+  border: 1px solid rgba(230, 0, 60, .28);
+  border-radius: 999px;
+  background: #ffe4eb;
+  box-shadow: 0 14px 36px rgba(230, 0, 60, .10);
+}
+
+.public-tab {
+  min-width: 150px;
+  padding: 12px 18px;
+  color: #9f1239;
+  font-size: 15px;
+  font-weight: 950;
+}
+
+.public-tab.active {
+  background: linear-gradient(135deg, #e6003c, #ff3f6f);
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(230, 0, 60, .22);
+}
+
+.public-tab:not(.active):hover {
+  background: rgba(255,255,255,.72);
+  color: #e6003c;
+}
+
+@media (max-width: 640px) {
+  .public-tabs {
+    border-radius: 22px;
+    padding: 7px;
+  }
+
+  .public-tab {
+    min-width: 0;
+    padding: 12px 14px;
+  }
+}
