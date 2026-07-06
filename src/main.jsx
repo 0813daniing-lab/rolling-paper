@@ -245,25 +245,43 @@ function App() {
 
   async function openPublicFromHash(hash) {
     const parts = hash.split("/").filter(Boolean);
-    const trackSlug = safeDecodeRoutePart(parts[1] || "");
-    const studentSlug = safeDecodeRoutePart(parts[2] || "");
+    const trackKey = safeDecodeRoutePart(parts[1] || "");
+    const studentKey = safeDecodeRoutePart(parts[2] || "");
 
-    const { data: track, error } = await supabase
+    let track = null;
+    let error = null;
+
+    const byId = await supabase
       .from("tracks")
       .select("*, students(*), letters(*)")
-      .eq("slug", trackSlug)
+      .eq("id", trackKey)
       .maybeSingle();
 
+    if (byId.data) {
+      track = byId.data;
+    } else {
+      const bySlug = await supabase
+        .from("tracks")
+        .select("*, students(*), letters(*)")
+        .eq("slug", trackKey)
+        .maybeSingle();
+
+      track = bySlug.data;
+      error = bySlug.error || byId.error;
+    }
+
     if (error || !track) {
+      console.error("Public track load failed", { trackKey, error });
       showToast("공개 링크 데이터를 찾을 수 없습니다.");
       return;
     }
 
     setCurrentTrack(track);
+    setCurrentStudent(null);
     setView("publicTrack");
 
-    if (studentSlug) {
-      const student = track.students.find((item) => item.slug === studentSlug);
+    if (studentKey) {
+      const student = track.students.find((item) => item.id === studentKey || item.slug === studentKey);
       if (student) {
         setCurrentStudent(student);
         setView("student");
@@ -574,7 +592,7 @@ function App() {
 
   async function copyPublicLink() {
     if (!currentTrack) return;
-    const link = `${window.location.origin}${window.location.pathname}#/t/${safeEncodeRoutePart(currentTrack.slug)}`;
+    const link = `${window.location.origin}${window.location.pathname}#/t/${safeEncodeRoutePart(currentTrack.id)}`;
     const copied = await copyTextToClipboard(link);
 
     if (copied) {
@@ -599,7 +617,7 @@ function App() {
     history.pushState(
       { view: "student", trackId: currentTrack.id, studentId: student.id, mode },
       "",
-      `#/${prefix}/${safeEncodeRoutePart(currentTrack.slug)}/${safeEncodeRoutePart(student.slug)}`
+      `#/${prefix}/${safeEncodeRoutePart(currentTrack.id)}/${safeEncodeRoutePart(student.id)}`
     );
   }
 
