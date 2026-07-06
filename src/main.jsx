@@ -1616,6 +1616,10 @@ function StickyBoard({ letters, setEditingLetter, canDelete = false, onDelete })
 }
 
 function SidePreview({ track, onClose }) {
+  const [activeTab, setActiveTab] = useState("people");
+  const groupedPeople = groupPeopleByRole(track.students || []);
+  const overallLetters = track.track_letters || [];
+
   return (
     <>
       <div className="side-preview-backdrop" onClick={onClose}></div>
@@ -1624,25 +1628,117 @@ function SidePreview({ track, onClose }) {
           <strong>공개 화면 미리보기</strong>
           <button className="side-preview-close" onClick={onClose}>×</button>
         </div>
-        <div className="side-preview-inner">
-          <div className="side-preview-cover"></div>
-          <div className="side-preview-icon">💌</div>
-          <h1 className="side-preview-heading">{track.title}</h1>
-          <p className="side-preview-desc">{track.description}</p>
-          <div className="side-preview-rule"></div>
-          <h3>편지를 남길 사람</h3>
-          <p>실제 공개 링크로 들어온 수강생에게 보이는 화면입니다.</p>
-          <div className="grid person-grid" style={{ marginTop: 18 }}>
-            {sortPeople(track.students).map((student) => (
-              <article className="person-card" style={{ cursor: "default" }} key={student.id}>
-                <div>
-                  <RoleBadge role={student.role} />
-                  <div className="person-name">{student.name}</div>
-                  <div className="hint">클릭해서 편지 쓰기</div>
-                </div>
-              </article>
-            ))}
+
+        <div className="side-preview-inner preview-current-ui">
+          <div className="side-preview-public-top">
+            <div className="public-brand">
+              <span className="public-brand-icon">✦</span>
+              <span>롤링페이퍼</span>
+            </div>
+            <span className="side-preview-label">공개 링크 화면</span>
           </div>
+
+          <div className="side-preview-cover">
+            <div className="cover-toolbar">
+              <span>Public rolling paper</span>
+              <span>내일배움캠프</span>
+            </div>
+          </div>
+
+          <article className="side-preview-doc">
+            <div className="side-preview-icon">📎</div>
+            <div className="doc-kicker">NB Camp Rolling Paper</div>
+            <h1 className="side-preview-heading">{track.title}</h1>
+            <p className="side-preview-desc">{track.description || "함께한 동료에게 마지막 인사를 남겨주세요."}</p>
+            <div className="side-preview-rule"></div>
+
+            <div className="public-tabs preview-tabs">
+              <button
+                className={`public-tab ${activeTab === "people" ? "active" : ""}`}
+                onClick={() => setActiveTab("people")}
+              >
+                개인에게 쓰기
+              </button>
+              <button
+                className={`public-tab ${activeTab === "all" ? "active" : ""}`}
+                onClick={() => setActiveTab("all")}
+              >
+                {overallBoardTitle(track)}
+              </button>
+            </div>
+
+            {activeTab === "people" ? (
+              <>
+                <div className="public-section-head">
+                  <div>
+                    <h3>편지를 남길 사람</h3>
+                    <p>고마웠던 사람들에게 개별 편지를 남겨보세요.</p>
+                  </div>
+                </div>
+
+                <div className="role-section-list public-role-sections">
+                  {ROLE_LABELS.map((role) => {
+                    const items = groupedPeople[role];
+                    if (!items.length) return null;
+
+                    return (
+                      <section className={`role-section-block public-role-block role-block-${roleType(role)}`} key={role}>
+                        <div className="role-section-head public-role-head">
+                          <div className="role-section-title-wrap">
+                            <span className={`role-dot role-dot-${roleType(role)}`}></span>
+                            <span className="role-section-title">{role}</span>
+                            <span className={`role-section-meta role-meta-${roleType(role)}`}>{items.length}명</span>
+                          </div>
+                        </div>
+                        <div className="grid person-grid role-person-grid public-person-grid">
+                          {items.map((student) => (
+                            <article className={`person-card public-person-card public-person-${roleType(student.role)}`} style={{ cursor: "default" }} key={student.id}>
+                              <div>
+                                <RoleBadge role={student.role} />
+                                <div className="person-name">{student.name}</div>
+                                <div className="hint">클릭해서 편지 쓰기</div>
+                              </div>
+                            </article>
+                          ))}
+                        </div>
+                      </section>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <div className="overall-board preview-overall-board">
+                <div className="public-section-head">
+                  <div>
+                    <h3>{overallBoardTitle(track)}</h3>
+                    <p>함께 달려온 우리 트랙 사람들에게 하고 싶은 말을 남겨보세요.</p>
+                  </div>
+                </div>
+
+                <div className="preview-write-card">
+                  <strong>전체에게 편지 쓰기</strong>
+                  <span>이름과 내용을 입력해 전체 편지를 남기는 영역입니다.</span>
+                </div>
+
+                <div className="preview-overall-list">
+                  <h3>전체 편지 모음</h3>
+                  <p>{overallLetters.length}개의 글이 모였습니다.</p>
+                  {overallLetters.length ? (
+                    <div className="preview-overall-items">
+                      {overallLetters.slice(0, 8).map((letter) => (
+                        <article className="preview-overall-item" key={letter.id}>
+                          <strong>{letter.writer_name}</strong>
+                          <p>{letter.content}</p>
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="empty">아직 전체 편지가 없습니다.</div>
+                  )}
+                </div>
+              </div>
+            )}
+          </article>
         </div>
       </aside>
     </>

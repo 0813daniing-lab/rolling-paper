@@ -1712,3 +1712,127 @@ body.preview-open { overflow: hidden; }
     display: none !important;
   }
 }
+
+
+/* Side preview uses current public UI */
+.preview-current-ui {
+  background: #fff7f9;
+  min-height: calc(100vh - 63px);
+}
+
+.side-preview-public-top {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.side-preview-label {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.85);
+  border: 1px solid rgba(226,232,240,.9);
+  color: #e6003c;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.side-preview-doc {
+  position: relative;
+  margin-top: -42px;
+  padding: 34px 30px 36px;
+  border-radius: 28px;
+  background: rgba(255,255,255,.98);
+  border: 1px solid rgba(255,255,255,.86);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, .08);
+}
+
+.side-preview-doc .side-preview-icon {
+  margin-top: 0;
+}
+
+.preview-tabs {
+  margin-top: 0;
+  margin-bottom: 24px;
+}
+
+.preview-current-ui .public-person-grid {
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+}
+
+.preview-current-ui .public-person-card {
+  min-height: 116px;
+}
+
+.preview-current-ui .public-person-tutor,
+.preview-current-ui .public-person-manager,
+.preview-current-ui .public-person-student,
+.preview-current-ui .public-person-card {
+  background: #ffffff !important;
+}
+
+.preview-current-ui .public-person-card::before {
+  display: none !important;
+}
+
+.preview-current-ui .public-role-block {
+  padding: 18px;
+}
+
+.preview-write-card,
+.preview-overall-list {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: #ffffff;
+}
+
+.preview-write-card {
+  display: grid;
+  gap: 5px;
+  color: #111827;
+}
+
+.preview-write-card span {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.preview-overall-list > h3 {
+  margin: 0 0 6px;
+}
+
+.preview-overall-list > p {
+  margin: 0 0 14px;
+  color: #64748b;
+}
+
+.preview-overall-items {
+  display: grid;
+  gap: 10px;
+}
+
+.preview-overall-item {
+  padding: 13px 14px;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.preview-overall-item strong {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 14px;
+}
+
+.preview-overall-item p {
+  margin: 0;
+  color: #374151;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
