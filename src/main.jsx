@@ -178,6 +178,7 @@ function App() {
   const [view, setView] = useState(isPublicHash() ? "publicLoading" : "login");
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
+  const [authNotice, setAuthNotice] = useState("");
   const [tracks, setTracks] = useState([]);
   const [currentTrack, setCurrentTrack] = useState(null);
   const [currentStudent, setCurrentStudent] = useState(null);
@@ -248,7 +249,35 @@ function App() {
       return;
     }
 
-    setProfile(data);
+    if (data) {
+      setProfile(data);
+      return;
+    }
+
+    const meta = session.user.user_metadata || {};
+    const fallbackProfile = {
+      id: session.user.id,
+      manager_name: meta.manager_name || "",
+      track_name: meta.track_name || "",
+      batch_name: meta.batch_name || "",
+      phone: meta.phone || "",
+      email: session.user.email || meta.email || "",
+    };
+
+    const { data: createdProfile, error: insertError } = await supabase
+      .from("profiles")
+      .insert(fallbackProfile)
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error("Profile auto-create failed", insertError);
+      setProfile(fallbackProfile);
+      showToast("내 정보가 비어 있습니다. 내 정보에서 저장해주세요.");
+      return;
+    }
+
+    setProfile(createdProfile);
   }
 
   async function loadTracks() {
@@ -335,7 +364,15 @@ function App() {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { manager_name: managerName } },
+      options: {
+        data: {
+          manager_name: managerName,
+          track_name: trackName,
+          batch_name: batchName,
+          phone,
+          email,
+        },
+      },
     });
 
     if (error) {
@@ -343,28 +380,24 @@ function App() {
       return;
     }
 
-    const userId = data.user?.id;
-    if (!userId) {
-      showToast("이메일 인증 후 로그인해주세요.");
+    if (data.session) {
+      await supabase.from("profiles").upsert({
+        id: data.session.user.id,
+        manager_name: managerName,
+        track_name: trackName,
+        batch_name: batchName,
+        phone,
+        email,
+      });
+      setAuthNotice("");
+      showToast("회원가입이 완료되었습니다.");
+      setView("workspace");
       return;
     }
 
-    const { error: profileError } = await supabase.from("profiles").insert({
-      id: userId,
-      manager_name: managerName,
-      track_name: trackName,
-      batch_name: batchName,
-      phone,
-      email,
-    });
-
-    if (profileError) {
-      showToast(profileError.message);
-      return;
-    }
-
-    showToast("회원가입이 완료되었습니다.");
-    setView("workspace");
+    setAuthNotice(`${email} 주소로 인증 메일을 보냈습니다. 메일함에서 인증 링크를 누른 뒤 로그인해주세요.`);
+    showToast("인증 메일을 확인해주세요.");
+    setView("login");
   }
 
   async function login(email, password) {
@@ -384,6 +417,7 @@ function App() {
       return;
     }
 
+    setAuthNotice("");
     setView("workspace");
   }
 
@@ -720,6 +754,8 @@ function App() {
           login={login}
           signup={signup}
           isConfigured={isConfigured}
+          authNotice={authNotice}
+          setAuthNotice={setAuthNotice}
         />
       )}
 
@@ -779,7 +815,7 @@ function App() {
   );
 }
 
-function AuthPage({ view, setView, login, signup, isConfigured }) {
+function AuthPage({ view, setView, login, signup, isConfigured, authNotice, setAuthNotice }) {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [form, setForm] = useState({
@@ -799,8 +835,8 @@ function AuthPage({ view, setView, login, signup, isConfigured }) {
           <span>롤링페이퍼</span>
         </div>
         <div className="top-actions">
-          <button className="btn ghost" onClick={() => setView("login")}>로그인</button>
-          <button className="btn soft" onClick={() => setView("signup")}>회원가입</button>
+          <button className="btn ghost" onClick={() => { setAuthNotice(""); setView("login"); }}>로그인</button>
+          <button className="btn soft" onClick={() => { setAuthNotice(""); setView("signup"); }}>회원가입</button>
         </div>
       </header>
 
@@ -808,6 +844,13 @@ function AuthPage({ view, setView, login, signup, isConfigured }) {
         <div className="card" style={{ marginBottom: 18 }}>
           <strong>Supabase 연결 필요</strong>
           <p>.env 파일에 VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY를 넣어야 로그인과 저장이 작동합니다.</p>
+        </div>
+      )}
+
+      {authNotice && (
+        <div className="auth-notice">
+          <strong>이메일 인증이 필요합니다.</strong>
+          <span>{authNotice}</span>
         </div>
       )}
 
@@ -825,7 +868,7 @@ function AuthPage({ view, setView, login, signup, isConfigured }) {
               <label>이메일 <input value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="manager@example.com" /></label>
               <label>비밀번호 <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} /></label>
               <button className="btn primary" onClick={() => login(loginEmail, loginPassword)}>로그인</button>
-              <button className="btn ghost" onClick={() => setView("signup")}>회원가입</button>
+              <button className="btn ghost" onClick={() => { setAuthNotice(""); setView("signup"); }}>회원가입</button>
             </div>
           </div>
         </section>
@@ -838,6 +881,10 @@ function AuthPage({ view, setView, login, signup, isConfigured }) {
           </div>
           <div className="card">
             <h2>회원가입</h2>
+            <div className="auth-notice subtle">
+              <strong>가입 전 안내</strong>
+              <span>가입 후 입력한 이메일로 인증 링크가 발송됩니다. 메일함에서 인증을 완료한 뒤 로그인해주세요.</span>
+            </div>
             <div className="form">
               <label>담당 트랙 <input value={form.trackName} onChange={(e) => setForm({ ...form, trackName: e.target.value })} /></label>
               <label>기수 <input value={form.batchName} onChange={(e) => setForm({ ...form, batchName: e.target.value })} /></label>
@@ -846,7 +893,7 @@ function AuthPage({ view, setView, login, signup, isConfigured }) {
               <label>전화번호 <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></label>
               <label>비밀번호 <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></label>
               <button className="btn primary" onClick={() => signup(form)}>가입하고 시작하기</button>
-              <button className="btn ghost" onClick={() => setView("login")}>로그인으로 돌아가기</button>
+              <button className="btn ghost" onClick={() => { setAuthNotice(""); setView("login"); }}>로그인으로 돌아가기</button>
             </div>
           </div>
         </section>
@@ -918,6 +965,11 @@ function Workspace({ profile, tracks, setView, logout, openAdminTrack, setConfir
 
 function Profile({ profile, saveProfile, setView }) {
   const [form, setForm] = useState(profile || {});
+
+  useEffect(() => {
+    setForm(profile || {});
+  }, [profile?.id, profile?.manager_name, profile?.track_name, profile?.batch_name, profile?.email, profile?.phone]);
+
   return (
     <main className="app">
       <header className="minimal-top">
