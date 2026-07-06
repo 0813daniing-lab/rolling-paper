@@ -332,3 +332,93 @@ body.preview-open { overflow: hidden; }
     grid-template-columns: 1fr;
   }
 }
+
+
+/* Login page visual polish */
+.login-layout {
+  grid-template-columns: minmax(0, 1.04fr) minmax(380px, 0.86fr);
+  gap: 28px;
+  align-items: center;
+  min-height: calc(100vh - 150px);
+}
+
+.login-layout > .card {
+  border-radius: 28px;
+  padding: 34px;
+}
+
+.login-layout .hero {
+  min-height: 440px;
+  justify-content: center;
+  padding: 36px 34px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.98), rgba(255,255,255,.94)),
+    radial-gradient(circle at 15% 12%, rgba(230,0,60,.10), transparent 28%);
+}
+
+.login-layout .hero .eyebrow {
+  font-size: 12px;
+  padding: 7px 11px;
+  margin-bottom: 18px;
+}
+
+.login-layout .hero h1 {
+  font-size: clamp(30px, 3.1vw, 44px);
+  line-height: 1.18;
+  letter-spacing: -0.055em;
+  word-break: keep-all;
+  max-width: 680px;
+}
+
+.login-layout .hero p {
+  font-size: 15px;
+  line-height: 1.75;
+  max-width: 620px;
+  margin-top: 18px;
+  word-break: keep-all;
+}
+
+.login-layout h2 {
+  font-size: 26px;
+  line-height: 1.22;
+  margin-bottom: 8px;
+}
+
+.login-layout .card:not(.hero) > p {
+  font-size: 15px;
+  margin-top: 10px;
+}
+
+.login-layout .form {
+  gap: 13px;
+  margin-top: 22px;
+}
+
+.login-layout input {
+  padding: 13px 15px;
+}
+
+.login-layout .btn {
+  padding: 12px 16px;
+}
+
+@media (max-width: 980px) {
+  .login-layout {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .login-layout .hero {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .login-layout > .card {
+    padding: 24px;
+  }
+
+  .login-layout .hero h1 {
+    font-size: 30px;
+  }
+}

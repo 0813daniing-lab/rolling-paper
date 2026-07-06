@@ -770,8 +770,8 @@ function AuthPage({ view, setView, login, signup, isConfigured }) {
         <section className="login-layout">
           <div className="card hero">
             <span className="eyebrow">내일배움캠프 롤링페이퍼</span>
-            <h1>수료 시 롤링페이퍼 작성을 편하게 하기 위해 만든 페이지입니다.</h1>
-            <p>이 페이지는 내일배움캠프 수료 시 롤링페이퍼 작성과 확인을 쉽게 하기 위해 이주영 학습관리 매니저가 제작했습니다. 이용 중 오류가 발생하면 이주영 학관매에게 연락해주세요.</p>
+            <h1>수료식 롤링페이퍼를 더 편하게 관리하세요.</h1>
+            <p>페이지 생성, 공개 링크 공유, 편지 확인까지 한 번에 관리할 수 있습니다. 이용 중 오류가 발생하면 이주영 학관매에게 연락해주세요.</p>
           </div>
           <div className="card">
             <h2>관리자 로그인</h2>
@@ -788,8 +788,8 @@ function AuthPage({ view, setView, login, signup, isConfigured }) {
         <section className="login-layout">
           <div className="card hero">
             <span className="eyebrow">관리자 회원가입</span>
-            <h1>가입하면 담당 트랙 기준의 개인 워크스페이스가 만들어집니다.</h1>
-            <p>관리자는 본인이 담당하는 트랙 안에서 롤링페이퍼를 만들고, 공개 링크를 수강생에게 공유합니다. 수강생은 회원가입 없이 공개 링크에서만 편지를 작성합니다.</p>
+            <h1>담당 트랙 기준의 워크스페이스를 만드세요.</h1>
+            <p>트랙별 롤링페이퍼를 만들고, 수강생에게 공개 링크를 공유할 수 있습니다. 수강생은 회원가입 없이 편지를 작성합니다.</p>
           </div>
           <div className="card">
             <h2>회원가입</h2>
