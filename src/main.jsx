@@ -1099,7 +1099,7 @@ function AuthPage({ view, setView, login, signup, isConfigured, authNotice, setA
             <h2>회원가입</h2>
             <div className="auth-notice subtle">
               <strong>가입 전 안내</strong>
-              <span>자주 사용하지 않는 식별성 좋은 아이디와 비밀번호로 관리자 워크스페이스를 만듭니다. 수강생은 공개 링크에서 회원가입 없이 편지를 작성합니다.</span>
+              <span>자주 사용하지 않는 식별성 좋은 자주 사용하지 않는 식별성 좋은 아이디와 비밀번호로 관리자 워크스페이스를 만들어주세요. 수강생은 공개 링크에서 회원가입 없이 편지를 작성합니다.</span>
             </div>
             <div className="form">
               <label>담당 트랙 <input value={form.trackName} onChange={(e) => setForm({ ...form, trackName: e.target.value })} /></label>
