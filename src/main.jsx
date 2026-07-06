@@ -93,6 +93,14 @@ function roleCounts(people = []) {
   );
 }
 
+function groupPeopleByRole(people = []) {
+  const grouped = { 튜터: [], 매니저: [], 수강생: [] };
+  sortPeople(people).forEach((person) => {
+    grouped[normalizeRole(person.role)].push(person);
+  });
+  return grouped;
+}
+
 function RoleBadge({ role }) {
   return <span className={`role-badge role-${normalizeRole(role)}`}>{normalizeRole(role)}</span>;
 }
