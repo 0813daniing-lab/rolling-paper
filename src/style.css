@@ -1110,3 +1110,38 @@ body.preview-open { overflow: hidden; }
 .auth-notice.subtle span {
   color: #64748b;
 }
+
+
+/* Received letter masonry layout */
+.public-page .sticky-board,
+.sticky-board {
+  display: block;
+  column-count: 2;
+  column-gap: 18px;
+  grid-template-columns: none;
+  align-items: initial;
+}
+
+.public-page .sticky-note,
+.sticky-note {
+  display: inline-block;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 0 18px;
+  break-inside: avoid;
+  page-break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  vertical-align: top;
+}
+
+.public-page .sticky-note:last-child,
+.sticky-note:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 860px) {
+  .public-page .sticky-board,
+  .sticky-board {
+    column-count: 1;
+  }
+}
