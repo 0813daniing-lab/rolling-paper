@@ -1382,3 +1382,47 @@ body.preview-open { overflow: hidden; }
     background: #ffffff !important;
   }
 }
+
+
+/* PDF: hide letter writing form completely */
+@media print {
+  .write-panel,
+  .card.write-panel,
+  body.print-letters-mode .write-panel,
+  body.print-letters-mode .card.write-panel,
+  body.print-letters-mode input,
+  body.print-letters-mode textarea,
+  body.print-letters-mode label,
+  body.print-letters-mode .form,
+  body.print-letters-mode button {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    overflow: hidden !important;
+  }
+
+  body.print-letters-mode .split {
+    display: block !important;
+  }
+
+  body.print-letters-mode .split > div:first-child {
+    display: none !important;
+  }
+
+  body.print-letters-mode .split > div:last-child {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.print-letters-mode .card h3,
+  body.print-letters-mode .card p {
+    display: block !important;
+  }
+}
