@@ -1301,3 +1301,84 @@ body.preview-open { overflow: hidden; }
     display: none !important;
   }
 }
+
+
+/* PDF print list mode: keep screen UI unchanged, print letters as a compact list */
+@media print {
+  body.print-letters-mode .sticky-board-shell {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    overflow: visible !important;
+  }
+
+  body.print-letters-mode .sticky-board {
+    display: block !important;
+    column-count: 1 !important;
+    column-gap: 0 !important;
+    grid-template-columns: none !important;
+    gap: 0 !important;
+  }
+
+  body.print-letters-mode .sticky-note {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 0 5mm !important;
+    padding: 5mm 0 5mm 5mm !important;
+    border: 0 !important;
+    border-left: 3px solid #e11d48 !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+    transform: none !important;
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+    overflow: visible !important;
+  }
+
+  body.print-letters-mode .sticky-note::before {
+    display: none !important;
+  }
+
+  body.print-letters-mode .sticky-note-writer {
+    margin: 0 0 2mm !important;
+    font-size: 11pt !important;
+    font-weight: 800 !important;
+    color: #111827 !important;
+  }
+
+  body.print-letters-mode .sticky-note-content {
+    margin: 0 !important;
+    font-size: 10pt !important;
+    line-height: 1.55 !important;
+    color: #1f2937 !important;
+    white-space: pre-wrap !important;
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  body.print-letters-mode .sticky-note-footer {
+    margin-top: 2.5mm !important;
+    font-size: 8.5pt !important;
+    color: #9ca3af !important;
+  }
+
+  body.print-letters-mode .sticky-note .btn,
+  body.print-letters-mode .sticky-note button {
+    display: none !important;
+  }
+
+  body.print-letters-mode .note-peach,
+  body.print-letters-mode .note-mint,
+  body.print-letters-mode .note-sky,
+  body.print-letters-mode .note-lilac,
+  body.print-letters-mode .note-yellow,
+  body.print-letters-mode .note-pink,
+  body.print-letters-mode .note-teal {
+    background: #ffffff !important;
+  }
+}
