@@ -1079,7 +1079,7 @@ function AuthPage({ view, setView, login, signup, isConfigured, authNotice, setA
           </div>
           <div className="card">
             <h2>관리자 로그인</h2>
-            <p>아이디와 비밀번호로 로그인합니다.</p>
+            <p>자주 사용하지 않는 식별성 좋은 아이디와 비밀번호를 입력해주세요.</p>
             <div className="form">
               <label>아이디 <input value={loginAdminId} onChange={(e) => setLoginAdminId(e.target.value)} placeholder="예: jy-manager" /></label>
               <label>비밀번호 <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} /></label>
@@ -1099,7 +1099,7 @@ function AuthPage({ view, setView, login, signup, isConfigured, authNotice, setA
             <h2>회원가입</h2>
             <div className="auth-notice subtle">
               <strong>가입 전 안내</strong>
-              <span>아이디와 비밀번호로 관리자 워크스페이스를 만듭니다. 수강생은 공개 링크에서 회원가입 없이 편지를 작성합니다.</span>
+              <span>자주 사용하지 않는 식별성 좋은 아이디와 비밀번호로 관리자 워크스페이스를 만듭니다. 수강생은 공개 링크에서 회원가입 없이 편지를 작성합니다.</span>
             </div>
             <div className="form">
               <label>담당 트랙 <input value={form.trackName} onChange={(e) => setForm({ ...form, trackName: e.target.value })} /></label>
