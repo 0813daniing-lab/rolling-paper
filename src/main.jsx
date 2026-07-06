@@ -281,9 +281,15 @@ function App() {
   }
 
   async function loadTracks() {
+    if (!session?.user?.id) {
+      setTracks([]);
+      return;
+    }
+
     const { data, error } = await supabase
       .from("tracks")
       .select("*, students(*), letters(*)")
+      .eq("owner_id", session.user.id)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -425,6 +431,9 @@ function App() {
     if (supabase) await supabase.auth.signOut();
     setSession(null);
     setProfile(null);
+    setTracks([]);
+    setCurrentTrack(null);
+    setCurrentStudent(null);
     setView("login");
   }
 
