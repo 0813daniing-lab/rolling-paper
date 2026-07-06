@@ -50,6 +50,10 @@ function isPublicHash(hash = getCurrentHash()) {
   return hash.startsWith("/t/");
 }
 
+function isAdminHash(hash = getCurrentHash()) {
+  return hash.startsWith("/admin/");
+}
+
 const ROLE_ORDER = { 튜터: 0, 매니저: 1, 수강생: 2 };
 const ROLE_LABELS = ["튜터", "매니저", "수강생"];
 const ROLE_CLASS = { 튜터: "tutor", 매니저: "manager", 수강생: "student" };
@@ -214,7 +218,7 @@ function App() {
 
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
-      if (data.session && !isPublicHash()) {
+      if (data.session && !isPublicHash() && !isAdminHash()) {
         setView("workspace");
       }
       setLoading(false);
@@ -222,7 +226,7 @@ function App() {
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
-      if (nextSession && !isPublicHash()) setView("workspace");
+      if (nextSession && !isPublicHash() && !isAdminHash()) setView("workspace");
     });
 
     return () => listener.subscription.unsubscribe();
@@ -230,8 +234,18 @@ function App() {
 
   useEffect(() => {
     if (!supabase || !session?.user) return;
-    loadProfile();
-    loadTracks();
+
+    const initPrivateRoute = async () => {
+      await loadProfile();
+      await loadTracks();
+
+      const hash = getCurrentHash();
+      if (isAdminHash(hash)) {
+        await openAdminFromHash(hash);
+      }
+    };
+
+    initPrivateRoute();
   }, [session?.user?.id]);
 
   useEffect(() => {
@@ -765,6 +779,52 @@ function App() {
     showToast("편지가 삭제되었습니다.");
   }
 
+  async function openAdminFromHash(hash) {
+    if (!session?.user?.id) return;
+
+    const parts = hash.split("/").filter(Boolean);
+    const trackKey = safeDecodeRoutePart(parts[1] || "");
+    const studentKey = safeDecodeRoutePart(parts[2] || "");
+
+    if (!trackKey) {
+      setView("workspace");
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("tracks")
+      .select("*, students(*), letters(*), track_letters(*)")
+      .eq("owner_id", session.user.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      showToast(error.message);
+      setView("workspace");
+      return;
+    }
+
+    const nextTrack = (data || []).find((item) => item.id === trackKey || item.slug === trackKey);
+
+    if (!nextTrack) {
+      showToast("해당 관리자 페이지를 찾을 수 없습니다.");
+      setView("workspace");
+      return;
+    }
+
+    setCurrentTrack(nextTrack);
+    setStudentMode("admin");
+
+    if (studentKey) {
+      const nextStudent = (nextTrack.students || []).find((item) => item.id === studentKey || item.slug === studentKey);
+      setCurrentStudent(nextStudent || null);
+      setView(nextStudent ? "student" : "adminTrack");
+      return;
+    }
+
+    setCurrentStudent(null);
+    setView("adminTrack");
+  }
+
   async function copyPublicLink() {
     if (!currentTrack) return;
     const link = `${publicSiteUrl}/#/t/${safeEncodeRoutePart(currentTrack.id)}`;
@@ -783,7 +843,7 @@ function App() {
     setCurrentStudent(null);
     setStudentMode("admin");
     setView("adminTrack");
-    history.pushState({ view: "adminTrack", trackId: track.id }, "", `#/admin/${safeEncodeRoutePart(track.slug)}`);
+    history.pushState({ view: "adminTrack", trackId: track.id }, "", `#/admin/${safeEncodeRoutePart(track.id)}`);
   }
 
   function openStudent(student, mode = "public") {
@@ -803,6 +863,8 @@ function App() {
       const hash = getCurrentHash();
       if (hash.startsWith("/t/")) {
         await openPublicFromHash(hash);
+      } else if (hash.startsWith("/admin/")) {
+        await openAdminFromHash(hash);
       } else if (view === "student") {
         setView(studentMode === "admin" ? "adminTrack" : "publicTrack");
       } else {
