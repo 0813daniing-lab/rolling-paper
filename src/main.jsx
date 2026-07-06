@@ -43,9 +43,14 @@ function safeDecodeRoutePart(value = "") {
 
 const ROLE_ORDER = { 튜터: 0, 매니저: 1, 수강생: 2 };
 const ROLE_LABELS = ["튜터", "매니저", "수강생"];
+const ROLE_CLASS = { 튜터: "tutor", 매니저: "manager", 수강생: "student" };
 
 function normalizeRole(role) {
   return ROLE_LABELS.includes(role) ? role : "수강생";
+}
+
+function roleType(role) {
+  return ROLE_CLASS[normalizeRole(role)] || "student";
 }
 
 function sortPeople(people = []) {
@@ -114,7 +119,8 @@ function groupPeopleByRole(people = []) {
 }
 
 function RoleBadge({ role }) {
-  return <span className={`role-badge role-${normalizeRole(role)}`}>{normalizeRole(role)}</span>;
+  const normalized = normalizeRole(role);
+  return <span className={`role-badge role-${roleType(normalized)}`}>{normalized}</span>;
 }
 
 function RoleMeta({ people }) {
@@ -997,72 +1003,111 @@ function AdminTrack({ track, copyPublicLink, setPreviewOpen, setView, openStuden
   );
 }
 
-function PublicShell({ view, track, student, openStudent, back, submitLetter, setEditingLetter }) {
-  if (view === "student" && student) {
-    return (
-      <main className="notion-page">
-        <section>
-          <div className="notion-cover"></div>
-          <article className="notion-doc">
-            <div className="doc-icon">💌</div>
-            <h1 className="doc-title">{student.name}님에게 남기는 롤링페이퍼</h1>
-            <p className="doc-sub">{track.title} 페이지입니다. 이름과 내용을 입력해 편지를 남겨주세요.</p>
-            <div className="doc-rule"></div>
-            <StudentLetters
-              track={track}
-              student={student}
-              back={back}
-              submitLetter={submitLetter}
-              setEditingLetter={setEditingLetter}
-            />
-          </article>
-        </section>
-      </main>
-    );
-  }
+
+function PublicPageLayout({ track, student, children }) {
+  const counts = roleCounts(track.students || []);
 
   return (
-    <main className="notion-page">
+    <main className="notion-page public-page">
       <section>
-        <div className="notion-cover"></div>
-        <article className="notion-doc">
-          <div className="doc-icon">💌</div>
-          <h1 className="doc-title">{track.title}</h1>
-          <p className="doc-sub">{track.description}</p>
-          <div className="doc-rule"></div>
-          <h3>편지를 남길 사람</h3>
-          <p>이름을 누르면 바로 편지를 쓰고, 받은 편지를 확인할 수 있습니다.</p>
-          <div className="role-section-list public-role-sections" style={{ marginTop: 18 }}>
-            {ROLE_LABELS.map((role) => {
-              const items = groupPeopleByRole(track.students || [])[role];
-              if (!items.length) return null;
-
-              return (
-                <section className="role-section-block" key={role}>
-                  <div className="role-section-head">
-                    <div className="role-section-title-wrap">
-                      <span className="role-section-title">{role}</span>
-                    </div>
-                  </div>
-                  <div className="role-divider"></div>
-                  <div className="grid person-grid role-person-grid">
-                    {items.map((item) => (
-                      <article className="person-card" key={item.id} onClick={() => openStudent(item)}>
-                        <div>
-                          <RoleBadge role={item.role} />
-                          <div className="person-name">{item.name}</div>
-                          <div className="hint">클릭해서 편지 쓰기</div>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                </section>
-              );
-            })}
+        <div className="public-topbar">
+          <div className="public-brand">
+            <span className="public-brand-icon">✦</span>
+            <span>롤링페이퍼</span>
           </div>
+          <div className="public-top-meta">
+            <span>공개 링크</span>
+            <span>{track.title}</span>
+          </div>
+        </div>
+
+        <div className="notion-cover">
+          <div className="cover-toolbar">
+            <span>Public rolling paper</span>
+            <span>내일배움캠프</span>
+          </div>
+        </div>
+
+        <article className="notion-doc public-doc">
+          <div className="doc-icon">{student ? "💌" : "📎"}</div>
+          <div className="doc-kicker">NB Camp Rolling Paper</div>
+          <h1 className="doc-title">{student ? `${student.name}님에게 남기는 롤링페이퍼` : track.title}</h1>
+          <p className="doc-sub">
+            {student
+              ? `${track.title} 페이지입니다. 이름과 내용을 입력해 편지를 남겨주세요.`
+              : track.description || "함께한 동료에게 마지막 인사를 남겨주세요."}
+          </p>
+          {!student && (
+            <div className="public-count-row">
+              {ROLE_LABELS.map((role) => (
+                <span className={`count-chip count-${roleType(role)}`} key={role}>{role} {counts[role]}명</span>
+              ))}
+            </div>
+          )}
+          <div className="doc-rule"></div>
+          {children}
         </article>
       </section>
     </main>
+  );
+}
+
+function PublicShell({ view, track, student, openStudent, back, submitLetter, setEditingLetter }) {
+  if (view === "student" && student) {
+    return (
+      <PublicPageLayout track={track} student={student}>
+        <StudentLetters
+          track={track}
+          student={student}
+          back={back}
+          submitLetter={submitLetter}
+          setEditingLetter={setEditingLetter}
+        />
+      </PublicPageLayout>
+    );
+  }
+
+  const groupedPeople = groupPeopleByRole(track.students || []);
+
+  return (
+    <PublicPageLayout track={track}>
+      <div className="public-section-head">
+        <div>
+          <h3>편지를 남길 사람</h3>
+          <p>역할별로 정리된 이름을 선택하면 바로 편지를 작성할 수 있습니다.</p>
+        </div>
+      </div>
+
+      <div className="role-section-list public-role-sections">
+        {ROLE_LABELS.map((role) => {
+          const items = groupedPeople[role];
+          if (!items.length) return null;
+
+          return (
+            <section className={`role-section-block public-role-block role-block-${roleType(role)}`} key={role}>
+              <div className="role-section-head public-role-head">
+                <div className="role-section-title-wrap">
+                  <span className={`role-dot role-dot-${roleType(role)}`}></span>
+                  <span className="role-section-title">{role}</span>
+                  <span className={`role-section-meta role-meta-${roleType(role)}`}>{items.length}명</span>
+                </div>
+              </div>
+              <div className="grid person-grid role-person-grid public-person-grid">
+                {items.map((item) => (
+                  <article className={`person-card public-person-card public-person-${roleType(item.role)}`} key={item.id} onClick={() => openStudent(item)}>
+                    <div>
+                      <RoleBadge role={item.role} />
+                      <div className="person-name">{item.name}</div>
+                      <div className="hint">클릭해서 편지 쓰기</div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          );
+        })}
+      </div>
+    </PublicPageLayout>
   );
 }
 
@@ -1089,7 +1134,7 @@ function StudentLetters({ track, student, back, submitLetter, setEditingLetter }
         </div>
       </div>
       <div>
-        <div className="top-actions no-print" style={{ justifyContent: "flex-start", marginBottom: 12 }}>
+        <div className="top-actions no-print public-letter-actions">
           <button className="btn soft" onClick={() => window.print()}>PDF 다운</button>
           <button className="btn ghost" onClick={back}>사람 목록으로</button>
         </div>
