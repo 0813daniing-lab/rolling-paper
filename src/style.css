@@ -1582,3 +1582,91 @@ body.preview-open { overflow: hidden; }
     padding: 12px 14px;
   }
 }
+
+
+.admin-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 24px;
+  padding: 6px;
+  border: 1px solid rgba(230, 0, 60, .24);
+  border-radius: 999px;
+  background: #fff1f5;
+  box-shadow: 0 12px 30px rgba(230, 0, 60, .08);
+}
+
+.admin-tab {
+  border: 0;
+  border-radius: 999px;
+  padding: 11px 18px;
+  background: transparent;
+  color: #64748b;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 950;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, box-shadow .15s ease;
+}
+
+.admin-tab.active {
+  background: linear-gradient(135deg, #e6003c, #ff3f6f);
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(230, 0, 60, .20);
+}
+
+.admin-tab:not(.active):hover {
+  background: rgba(255,255,255,.78);
+  color: #e6003c;
+}
+
+.admin-tab-panel {
+  margin-top: 0;
+}
+
+@media (max-width: 640px) {
+  .admin-tabs {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    border-radius: 22px;
+  }
+
+  .admin-tab {
+    width: 100%;
+  }
+}
+
+
+/* Remove person card background gradients */
+.public-person-tutor,
+.public-person-manager,
+.public-person-student,
+.public-person-card,
+.role-person-grid .track-card,
+.person-card {
+  background: #ffffff !important;
+}
+
+.public-person-card::before,
+.public-person-tutor::before,
+.public-person-manager::before,
+.public-person-student::before {
+  display: none !important;
+}
+
+.public-person-tutor {
+  border-color: #ffd4df !important;
+}
+
+.public-person-manager {
+  border-color: #d9e1ff !important;
+}
+
+.public-person-student {
+  border-color: #d6f7e5 !important;
+}
+
+.role-person-grid .track-card {
+  border: 1px solid var(--line);
+}

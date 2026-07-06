@@ -1157,6 +1157,7 @@ function CreateTrack({ profile, setView, createTrack }) {
 
 function AdminTrack({ track, copyPublicLink, setPreviewOpen, setView, openStudent, setNameModal, setConfirm, deleteStudent, setEditingTrackLetter, deleteTrackLetter }) {
   const groupedPeople = groupPeopleByRole(track.students || []);
+  const [adminTab, setAdminTab] = useState("people");
 
   return (
     <main className="app">
@@ -1173,76 +1174,95 @@ function AdminTrack({ track, copyPublicLink, setPreviewOpen, setView, openStuden
         <h2>{track.title}</h2>
         <p>{track.description}</p>
         <div className="doc-rule"></div>
-        <h3>참여자 관리</h3>
-        <p>튜터, 매니저, 수강생을 추가, 수정, 삭제할 수 있습니다. 이름을 누르면 편지 작성 및 받은 편지 확인 페이지로 이동합니다.</p>
 
-        <div className="grid person-grid add-person-grid" style={{ marginTop: 18 }}>
-          <article className="add-card" onClick={() => setNameModal({ type: "add" })}>
-            <div><div className="plus">+</div><h3>참여자 추가</h3><p>역할과 이름을 추가하려면 여기를 누르세요.</p></div>
-          </article>
+        <div className="admin-tabs">
+          <button
+            className={`admin-tab ${adminTab === "people" ? "active" : ""}`}
+            onClick={() => setAdminTab("people")}
+          >
+            참여자 관리
+          </button>
+          <button
+            className={`admin-tab ${adminTab === "overall" ? "active" : ""}`}
+            onClick={() => setAdminTab("overall")}
+          >
+            전체 편지 관리
+          </button>
         </div>
 
-        <div className="role-section-list">
-          {ROLE_LABELS.map((role) => (
-            <section className="role-section-block" key={role}>
-              <div className="role-section-head">
-                <div className="role-section-title-wrap">
-                  <span className="role-section-title">{role}</span>
-                  <span className="role-section-meta">{groupedPeople[role].length}명</span>
-                </div>
-              </div>
-              <div className="role-divider"></div>
-              {groupedPeople[role].length ? (
-                <div className="grid person-grid role-person-grid">
-                  {groupedPeople[role].map((student) => (
-                    <article className="track-card" key={student.id} onClick={() => openStudent(student)}>
-                      <RoleBadge role={student.role} />
-                      <h3>{student.name}</h3>
-                      <p>클릭하면 작성 폼과 받은 편지를 확인합니다.</p>
-                      <div className="student-admin-actions">
-                        <button className="btn soft" onClick={(e) => {
-                          e.stopPropagation();
-                          setNameModal({ type: "edit", student });
-                        }}>이름 수정</button>
-                        <button className="btn danger" onClick={(e) => {
-                          e.stopPropagation();
-                          setConfirm({
-                            title: "참여자 삭제 확인",
-                            message: `${student.name}님을 진짜 삭제할까요?`,
-                            action: () => deleteStudent(student),
-                          });
-                        }}>삭제</button>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <div className="empty role-empty">아직 등록된 {role}가 없습니다.</div>
-              )}
-            </section>
-          ))}
-        </div>
+        {adminTab === "people" ? (
+          <section className="admin-tab-panel">
+            <h3>참여자 관리</h3>
+            <p>튜터, 매니저, 수강생을 추가, 수정, 삭제할 수 있습니다. 이름을 누르면 편지 작성 및 받은 편지 확인 페이지로 이동합니다.</p>
 
-        <div className="doc-rule"></div>
-        <section className="admin-overall-letters">
-          <div className="section-head">
-            <div>
-              <span className="eyebrow">전체 편지 관리</span>
-              <h3>{overallBoardTitle(track)}</h3>
-              <p>공개 링크의 전체 편지 탭에 작성된 글을 확인하고 삭제할 수 있습니다.</p>
+            <div className="grid person-grid add-person-grid" style={{ marginTop: 18 }}>
+              <article className="add-card" onClick={() => setNameModal({ type: "add" })}>
+                <div><div className="plus">+</div><h3>참여자 추가</h3><p>역할과 이름을 추가하려면 여기를 누르세요.</p></div>
+              </article>
             </div>
-          </div>
-          <div className="card admin-overall-card">
-            <h3>전체 편지 모음</h3>
-            <p>{track.track_letters?.length || 0}개의 글이 모였습니다.</p>
-            <StickyBoard
-              letters={track.track_letters || []}
-              setEditingLetter={setEditingTrackLetter}
-              canDelete={true}
-              onDelete={deleteTrackLetter}
-            />
-          </div>
-        </section>
+
+            <div className="role-section-list">
+              {ROLE_LABELS.map((role) => (
+                <section className="role-section-block" key={role}>
+                  <div className="role-section-head">
+                    <div className="role-section-title-wrap">
+                      <span className="role-section-title">{role}</span>
+                      <span className="role-section-meta">{groupedPeople[role].length}명</span>
+                    </div>
+                  </div>
+                  <div className="role-divider"></div>
+                  {groupedPeople[role].length ? (
+                    <div className="grid person-grid role-person-grid">
+                      {groupedPeople[role].map((student) => (
+                        <article className="track-card" key={student.id} onClick={() => openStudent(student)}>
+                          <RoleBadge role={student.role} />
+                          <h3>{student.name}</h3>
+                          <p>클릭하면 작성 폼과 받은 편지를 확인합니다.</p>
+                          <div className="student-admin-actions">
+                            <button className="btn soft" onClick={(e) => {
+                              e.stopPropagation();
+                              setNameModal({ type: "edit", student });
+                            }}>이름 수정</button>
+                            <button className="btn danger" onClick={(e) => {
+                              e.stopPropagation();
+                              setConfirm({
+                                title: "참여자 삭제 확인",
+                                message: `${student.name}님을 진짜 삭제할까요?`,
+                                action: () => deleteStudent(student),
+                              });
+                            }}>삭제</button>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="empty role-empty">아직 등록된 {role}가 없습니다.</div>
+                  )}
+                </section>
+              ))}
+            </div>
+          </section>
+        ) : (
+          <section className="admin-tab-panel admin-overall-letters">
+            <div className="section-head">
+              <div>
+                <span className="eyebrow">전체 편지 관리</span>
+                <h3>{overallBoardTitle(track)}</h3>
+                <p>공개 링크의 전체 편지 탭에 작성된 글을 확인하고 삭제할 수 있습니다.</p>
+              </div>
+            </div>
+            <div className="card admin-overall-card">
+              <h3>전체 편지 모음</h3>
+              <p>{track.track_letters?.length || 0}개의 글이 모였습니다.</p>
+              <StickyBoard
+                letters={track.track_letters || []}
+                setEditingLetter={setEditingTrackLetter}
+                canDelete={true}
+                onDelete={deleteTrackLetter}
+              />
+            </div>
+          </section>
+        )}
       </div>
     </main>
   );
