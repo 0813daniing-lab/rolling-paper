@@ -41,6 +41,14 @@ function safeDecodeRoutePart(value = "") {
   }
 }
 
+function getCurrentHash() {
+  return window.location.hash.replace("#", "");
+}
+
+function isPublicHash(hash = getCurrentHash()) {
+  return hash.startsWith("/t/");
+}
+
 const ROLE_ORDER = { 튜터: 0, 매니저: 1, 수강생: 2 };
 const ROLE_LABELS = ["튜터", "매니저", "수강생"];
 const ROLE_CLASS = { 튜터: "tutor", 매니저: "manager", 수강생: "student" };
@@ -167,7 +175,7 @@ async function copyTextToClipboard(text) {
 function App() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(fallback.profile);
-  const [view, setView] = useState("login");
+  const [view, setView] = useState(isPublicHash() ? "publicLoading" : "login");
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState("");
   const [tracks, setTracks] = useState([]);
@@ -193,7 +201,7 @@ function App() {
 
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
-      if (data.session) {
+      if (data.session && !isPublicHash()) {
         setView("workspace");
       }
       setLoading(false);
@@ -201,7 +209,7 @@ function App() {
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
-      if (nextSession) setView("workspace");
+      if (nextSession && !isPublicHash()) setView("workspace");
     });
 
     return () => listener.subscription.unsubscribe();
@@ -215,9 +223,17 @@ function App() {
 
   useEffect(() => {
     if (!supabase) return;
-    const hash = window.location.hash.replace("#", "");
-    if (!hash.startsWith("/t/")) return;
-    openPublicFromHash(hash);
+
+    const openPublicRoute = () => {
+      const hash = getCurrentHash();
+      if (!isPublicHash(hash)) return;
+      setView("publicLoading");
+      openPublicFromHash(hash);
+    };
+
+    openPublicRoute();
+    window.addEventListener("hashchange", openPublicRoute);
+    return () => window.removeEventListener("hashchange", openPublicRoute);
   }, [isConfigured]);
 
   async function loadProfile() {
@@ -278,6 +294,9 @@ function App() {
 
     if (error || !track) {
       console.error("Public track load failed", { trackKey, error });
+      setCurrentTrack(null);
+      setCurrentStudent(null);
+      setView("publicError");
       showToast("공개 링크 데이터를 찾을 수 없습니다.");
       return;
     }
@@ -629,7 +648,7 @@ function App() {
 
   useEffect(() => {
     const onPop = async () => {
-      const hash = window.location.hash.replace("#", "");
+      const hash = getCurrentHash();
       if (hash.startsWith("/t/")) {
         await openPublicFromHash(hash);
       } else if (view === "student") {
@@ -674,7 +693,27 @@ function App() {
         />
       )}
 
-      {!session && view !== "publicTrack" && view !== "student" && (
+      {view === "publicLoading" && (
+        <main className="public-loading">
+          <div className="public-loading-card">
+            <div className="logo">✦</div>
+            <h2>롤링페이퍼를 불러오는 중입니다</h2>
+            <p>로그인 없이 공개 페이지로 이동합니다.</p>
+          </div>
+        </main>
+      )}
+
+      {view === "publicError" && (
+        <main className="public-loading">
+          <div className="public-loading-card">
+            <div className="logo">!</div>
+            <h2>공개 링크를 찾을 수 없습니다</h2>
+            <p>링크가 잘못되었거나 페이지가 삭제되었을 수 있습니다.</p>
+          </div>
+        </main>
+      )}
+
+      {!session && !["publicTrack", "student", "publicLoading", "publicError"].includes(view) && (
         <AuthPage
           view={view}
           setView={setView}
