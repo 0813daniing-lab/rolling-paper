@@ -930,7 +930,7 @@ function Workspace({ profile, tracks, setView, logout, openAdminTrack, setConfir
         <div className="workspace-cover"></div>
         <div className="workspace-title">
           <div className="emoji">📝</div>
-          <h1>{profile?.manager_name || "담당자"}님의 롤링페이퍼</h1>
+          <h1>트랙별 롤링페이퍼 생성</h1>
           <p>{profile?.track_name || "담당 트랙"} {profile?.batch_name || ""} 담당 워크스페이스</p>
         </div>
 
