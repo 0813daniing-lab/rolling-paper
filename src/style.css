@@ -1457,3 +1457,64 @@ body.preview-open { overflow: hidden; }
     display: none !important;
   }
 }
+
+
+.public-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 24px;
+  padding: 6px;
+  border: 1px solid #ffe1e8;
+  border-radius: 999px;
+  background: #fff7f9;
+}
+
+.public-tab {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 14px;
+  background: transparent;
+  color: #64748b;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: background .15s ease, color .15s ease, box-shadow .15s ease;
+}
+
+.public-tab.active {
+  background: #ffffff;
+  color: #e6003c;
+  box-shadow: 0 10px 24px rgba(230, 0, 60, .10);
+}
+
+.overall-board {
+  display: grid;
+  gap: 18px;
+}
+
+.overall-write-panel {
+  width: 100%;
+}
+
+.overall-write-panel textarea {
+  min-height: 120px;
+}
+
+.overall-list-card {
+  margin-top: 2px;
+}
+
+@media (max-width: 640px) {
+  .public-tabs {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+    border-radius: 22px;
+  }
+
+  .public-tab {
+    width: 100%;
+  }
+}

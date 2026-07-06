@@ -127,6 +127,15 @@ function groupPeopleByRole(people = []) {
   return grouped;
 }
 
+function overallBoardTitle(track) {
+  const base = String(track?.title || "전체")
+    .replace(/롤링페이퍼/g, "")
+    .replace(/페이지/g, "")
+    .trim();
+
+  return `${base || "전체"} 전체에게 쓰는 편지`;
+}
+
 function RoleBadge({ role }) {
   const normalized = normalizeRole(role);
   return <span className={`role-badge role-${roleType(normalized)}`}>{normalized}</span>;
@@ -186,6 +195,7 @@ function App() {
   const [studentMode, setStudentMode] = useState("public");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [editingLetter, setEditingLetter] = useState(null);
+  const [editingTrackLetter, setEditingTrackLetter] = useState(null);
   const [nameModal, setNameModal] = useState(null);
   const [confirm, setConfirm] = useState(null);
 
@@ -290,7 +300,7 @@ function App() {
 
     const { data, error } = await supabase
       .from("tracks")
-      .select("*, students(*), letters(*)")
+      .select("*, students(*), letters(*), track_letters(*)")
       .eq("owner_id", session.user.id)
       .order("created_at", { ascending: false });
 
@@ -312,7 +322,7 @@ function App() {
 
     const byId = await supabase
       .from("tracks")
-      .select("*, students(*), letters(*)")
+      .select("*, students(*), letters(*), track_letters(*)")
       .eq("id", trackKey)
       .maybeSingle();
 
@@ -321,7 +331,7 @@ function App() {
     } else {
       const bySlug = await supabase
         .from("tracks")
-        .select("*, students(*), letters(*)")
+        .select("*, students(*), letters(*), track_letters(*)")
         .eq("slug", trackKey)
         .maybeSingle();
 
@@ -438,6 +448,7 @@ function App() {
     setCurrentTrack(null);
     setCurrentStudent(null);
     setStudentMode("public");
+    setEditingTrackLetter(null);
     setView("login");
   }
 
@@ -514,7 +525,7 @@ function App() {
     await loadTracks();
     const { data: loaded } = await supabase
       .from("tracks")
-      .select("*, students(*), letters(*)")
+      .select("*, students(*), letters(*), track_letters(*)")
       .eq("id", track.id)
       .single();
 
@@ -539,7 +550,7 @@ function App() {
     if (!trackId) return;
     const { data, error } = await supabase
       .from("tracks")
-      .select("*, students(*), letters(*)")
+      .select("*, students(*), letters(*), track_letters(*)")
       .eq("id", trackId)
       .single();
 
@@ -662,6 +673,75 @@ function App() {
     showToast("편지가 수정되었습니다.");
   }
 
+  async function submitTrackLetter(writerName, content) {
+    if (!writerName.trim() || !content.trim()) {
+      showToast("이름과 내용을 모두 입력해주세요.");
+      return;
+    }
+
+    const { error } = await supabase.from("track_letters").insert({
+      track_id: currentTrack.id,
+      writer_name: writerName.trim(),
+      content: content.trim(),
+    });
+
+    if (error) {
+      showToast(error.message);
+      return;
+    }
+
+    await refreshCurrentTrack();
+    showToast("전체 편지가 남겨졌습니다.");
+  }
+
+  async function saveTrackLetterEdit(letter) {
+    if (!letter.writer_name.trim() || !letter.content.trim()) {
+      showToast("이름과 내용을 모두 입력해주세요.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("track_letters")
+      .update({
+        writer_name: letter.writer_name.trim(),
+        content: letter.content.trim(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", letter.id);
+
+    if (error) {
+      showToast(error.message);
+      return;
+    }
+
+    setEditingTrackLetter(null);
+    await refreshCurrentTrack();
+    showToast("전체 편지가 수정되었습니다.");
+  }
+
+  async function deleteTrackLetter(letter) {
+    if (!session?.user) {
+      showToast("관리자만 편지를 삭제할 수 있습니다.");
+      return;
+    }
+
+    const ok = window.confirm(`${letter.writer_name}님의 전체 편지를 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.`);
+    if (!ok) return;
+
+    const { error } = await supabase
+      .from("track_letters")
+      .delete()
+      .eq("id", letter.id);
+
+    if (error) {
+      showToast(error.message);
+      return;
+    }
+
+    await refreshCurrentTrack();
+    showToast("전체 편지가 삭제되었습니다.");
+  }
+
   async function deleteLetter(letter) {
     if (!session?.user) {
       showToast("관리자만 편지를 삭제할 수 있습니다.");
@@ -758,6 +838,14 @@ function App() {
         />
       )}
 
+      {editingTrackLetter && (
+        <LetterEditModal
+          letter={editingTrackLetter}
+          onClose={() => setEditingTrackLetter(null)}
+          onSave={saveTrackLetterEdit}
+        />
+      )}
+
       {previewOpen && currentTrack && (
         <SidePreview
           track={currentTrack}
@@ -846,8 +934,11 @@ function App() {
           openStudent={(student) => openStudent(student, "public")}
           back={() => setView(studentMode === "admin" ? "adminTrack" : "publicTrack")}
           submitLetter={submitLetter}
+          submitTrackLetter={submitTrackLetter}
           setEditingLetter={setEditingLetter}
+          setEditingTrackLetter={setEditingTrackLetter}
           deleteLetter={deleteLetter}
+          deleteTrackLetter={deleteTrackLetter}
           isAdmin={studentMode === "admin"}
         />
       )}
@@ -1183,7 +1274,22 @@ function PublicPageLayout({ track, student, children }) {
   );
 }
 
-function PublicShell({ view, track, student, openStudent, back, submitLetter, setEditingLetter, deleteLetter, isAdmin = false }) {
+function PublicShell({
+  view,
+  track,
+  student,
+  openStudent,
+  back,
+  submitLetter,
+  submitTrackLetter,
+  setEditingLetter,
+  setEditingTrackLetter,
+  deleteLetter,
+  deleteTrackLetter,
+  isAdmin = false,
+}) {
+  const [activeTab, setActiveTab] = useState("people");
+
   if (view === "student" && student) {
     return (
       <PublicPageLayout track={track} student={student}>
@@ -1204,43 +1310,115 @@ function PublicShell({ view, track, student, openStudent, back, submitLetter, se
 
   return (
     <PublicPageLayout track={track}>
+      <div className="public-tabs no-print">
+        <button
+          className={`public-tab ${activeTab === "people" ? "active" : ""}`}
+          onClick={() => setActiveTab("people")}
+        >
+          개인에게 쓰기
+        </button>
+        <button
+          className={`public-tab ${activeTab === "all" ? "active" : ""}`}
+          onClick={() => setActiveTab("all")}
+        >
+          {overallBoardTitle(track)}
+        </button>
+      </div>
+
+      {activeTab === "people" ? (
+        <>
+          <div className="public-section-head">
+            <div>
+              <h3>편지를 남길 사람</h3>
+              <p>역할별로 정리된 이름을 선택하면 바로 편지를 작성할 수 있습니다.</p>
+            </div>
+          </div>
+
+          <div className="role-section-list public-role-sections">
+            {ROLE_LABELS.map((role) => {
+              const items = groupedPeople[role];
+              if (!items.length) return null;
+
+              return (
+                <section className={`role-section-block public-role-block role-block-${roleType(role)}`} key={role}>
+                  <div className="role-section-head public-role-head">
+                    <div className="role-section-title-wrap">
+                      <span className={`role-dot role-dot-${roleType(role)}`}></span>
+                      <span className="role-section-title">{role}</span>
+                      <span className={`role-section-meta role-meta-${roleType(role)}`}>{items.length}명</span>
+                    </div>
+                  </div>
+                  <div className="grid person-grid role-person-grid public-person-grid">
+                    {items.map((item) => (
+                      <article className={`person-card public-person-card public-person-${roleType(item.role)}`} key={item.id} onClick={() => openStudent(item)}>
+                        <div>
+                          <RoleBadge role={item.role} />
+                          <div className="person-name">{item.name}</div>
+                          <div className="hint">클릭해서 편지 쓰기</div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        </>
+      ) : (
+        <OverallLetters
+          track={track}
+          submitTrackLetter={submitTrackLetter}
+          setEditingTrackLetter={setEditingTrackLetter}
+          deleteTrackLetter={deleteTrackLetter}
+          isAdmin={isAdmin}
+        />
+      )}
+    </PublicPageLayout>
+  );
+}
+
+function OverallLetters({ track, submitTrackLetter, setEditingTrackLetter, deleteTrackLetter, isAdmin = false }) {
+  const [writer, setWriter] = useState("");
+  const [content, setContent] = useState("");
+  const letters = track.track_letters || [];
+  const title = overallBoardTitle(track);
+
+  async function onSubmit() {
+    await submitTrackLetter(writer, content);
+    setWriter("");
+    setContent("");
+  }
+
+  return (
+    <div className="overall-board">
       <div className="public-section-head">
         <div>
-          <h3>편지를 남길 사람</h3>
-          <p>역할별로 정리된 이름을 선택하면 바로 편지를 작성할 수 있습니다.</p>
+          <h3>{title}</h3>
+          <p>피그잼 회고처럼 짧게 남긴 말을 한곳에 모아볼 수 있습니다.</p>
         </div>
       </div>
 
-      <div className="role-section-list public-role-sections">
-        {ROLE_LABELS.map((role) => {
-          const items = groupedPeople[role];
-          if (!items.length) return null;
-
-          return (
-            <section className={`role-section-block public-role-block role-block-${roleType(role)}`} key={role}>
-              <div className="role-section-head public-role-head">
-                <div className="role-section-title-wrap">
-                  <span className={`role-dot role-dot-${roleType(role)}`}></span>
-                  <span className="role-section-title">{role}</span>
-                  <span className={`role-section-meta role-meta-${roleType(role)}`}>{items.length}명</span>
-                </div>
-              </div>
-              <div className="grid person-grid role-person-grid public-person-grid">
-                {items.map((item) => (
-                  <article className={`person-card public-person-card public-person-${roleType(item.role)}`} key={item.id} onClick={() => openStudent(item)}>
-                    <div>
-                      <RoleBadge role={item.role} />
-                      <div className="person-name">{item.name}</div>
-                      <div className="hint">클릭해서 편지 쓰기</div>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </section>
-          );
-        })}
+      <div className="card write-panel overall-write-panel">
+        <h3>전체에게 편지 쓰기</h3>
+        <p>이름과 내용은 모두 필수입니다.</p>
+        <div className="form">
+          <label>이름 <input value={writer} onChange={(e) => setWriter(e.target.value)} placeholder="작성자 이름" /></label>
+          <label>내용 <textarea value={content} onChange={(e) => setContent(e.target.value)} placeholder="함께한 모두에게 전하고 싶은 말을 적어주세요." /></label>
+          <button className="btn primary" onClick={onSubmit}>전체에게 남기기</button>
+        </div>
       </div>
-    </PublicPageLayout>
+
+      <div className="card overall-list-card">
+        <h3>전체 편지 모음</h3>
+        <p>{letters.length}개의 글이 모였습니다.</p>
+        <StickyBoard
+          letters={letters}
+          setEditingLetter={setEditingTrackLetter}
+          canDelete={isAdmin}
+          onDelete={deleteTrackLetter}
+        />
+      </div>
+    </div>
   );
 }
 
