@@ -1426,3 +1426,34 @@ body.preview-open { overflow: hidden; }
     display: block !important;
   }
 }
+
+
+.sticky-note-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.sticky-delete-btn {
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 900;
+  background: rgba(255,255,255,.72);
+  color: #9f1239;
+  border: 1px solid rgba(159,18,57,.16);
+}
+
+.sticky-delete-btn:hover,
+.sticky-edit-btn:hover {
+  filter: brightness(.98);
+}
+
+@media print {
+  .sticky-note-actions,
+  .sticky-delete-btn {
+    display: none !important;
+  }
+}

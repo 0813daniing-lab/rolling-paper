@@ -183,6 +183,7 @@ function App() {
   const [tracks, setTracks] = useState([]);
   const [currentTrack, setCurrentTrack] = useState(null);
   const [currentStudent, setCurrentStudent] = useState(null);
+  const [studentMode, setStudentMode] = useState("public");
   const [previewOpen, setPreviewOpen] = useState(false);
   const [editingLetter, setEditingLetter] = useState(null);
   const [nameModal, setNameModal] = useState(null);
@@ -339,6 +340,7 @@ function App() {
 
     setCurrentTrack(track);
     setCurrentStudent(null);
+    setStudentMode("public");
     setView("publicTrack");
 
     if (studentKey) {
@@ -435,6 +437,7 @@ function App() {
     setTracks([]);
     setCurrentTrack(null);
     setCurrentStudent(null);
+    setStudentMode("public");
     setView("login");
   }
 
@@ -659,6 +662,29 @@ function App() {
     showToast("편지가 수정되었습니다.");
   }
 
+  async function deleteLetter(letter) {
+    if (!session?.user) {
+      showToast("관리자만 편지를 삭제할 수 있습니다.");
+      return;
+    }
+
+    const ok = window.confirm(`${letter.writer_name}님의 편지를 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.`);
+    if (!ok) return;
+
+    const { error } = await supabase
+      .from("letters")
+      .delete()
+      .eq("id", letter.id);
+
+    if (error) {
+      showToast(error.message);
+      return;
+    }
+
+    await refreshCurrentTrack();
+    showToast("편지가 삭제되었습니다.");
+  }
+
   async function copyPublicLink() {
     if (!currentTrack) return;
     const link = `${publicSiteUrl}/#/t/${safeEncodeRoutePart(currentTrack.id)}`;
@@ -675,12 +701,14 @@ function App() {
   function openAdminTrack(track) {
     setCurrentTrack(track);
     setCurrentStudent(null);
+    setStudentMode("admin");
     setView("adminTrack");
     history.pushState({ view: "adminTrack", trackId: track.id }, "", `#/admin/${safeEncodeRoutePart(track.slug)}`);
   }
 
   function openStudent(student, mode = "public") {
     setCurrentStudent(student);
+    setStudentMode(mode);
     setView("student");
     const prefix = mode === "admin" ? "admin" : "t";
     history.pushState(
@@ -696,7 +724,7 @@ function App() {
       if (hash.startsWith("/t/")) {
         await openPublicFromHash(hash);
       } else if (view === "student") {
-        setView("adminTrack");
+        setView(studentMode === "admin" ? "adminTrack" : "publicTrack");
       } else {
         setView("workspace");
       }
@@ -816,9 +844,11 @@ function App() {
           track={currentTrack}
           student={currentStudent}
           openStudent={(student) => openStudent(student, "public")}
-          back={() => setView("publicTrack")}
+          back={() => setView(studentMode === "admin" ? "adminTrack" : "publicTrack")}
           submitLetter={submitLetter}
           setEditingLetter={setEditingLetter}
+          deleteLetter={deleteLetter}
+          isAdmin={studentMode === "admin"}
         />
       )}
     </>
@@ -1153,7 +1183,7 @@ function PublicPageLayout({ track, student, children }) {
   );
 }
 
-function PublicShell({ view, track, student, openStudent, back, submitLetter, setEditingLetter }) {
+function PublicShell({ view, track, student, openStudent, back, submitLetter, setEditingLetter, deleteLetter, isAdmin = false }) {
   if (view === "student" && student) {
     return (
       <PublicPageLayout track={track} student={student}>
@@ -1163,6 +1193,8 @@ function PublicShell({ view, track, student, openStudent, back, submitLetter, se
           back={back}
           submitLetter={submitLetter}
           setEditingLetter={setEditingLetter}
+          deleteLetter={deleteLetter}
+          isAdmin={isAdmin}
         />
       </PublicPageLayout>
     );
@@ -1212,7 +1244,7 @@ function PublicShell({ view, track, student, openStudent, back, submitLetter, se
   );
 }
 
-function StudentLetters({ track, student, back, submitLetter, setEditingLetter }) {
+function StudentLetters({ track, student, back, submitLetter, setEditingLetter, deleteLetter, isAdmin = false }) {
   const [writer, setWriter] = useState("");
   const [content, setContent] = useState("");
   const letters = track.letters?.filter((letter) => letter.student_id === student.id) || [];
@@ -1250,14 +1282,14 @@ function StudentLetters({ track, student, back, submitLetter, setEditingLetter }
         <div className="card">
           <h3>받은 편지</h3>
           <p>{student.name}님이 받은 편지 {letters.length}개</p>
-          <StickyBoard letters={letters} setEditingLetter={setEditingLetter} />
+          <StickyBoard letters={letters} setEditingLetter={setEditingLetter} canDelete={isAdmin} onDelete={deleteLetter} />
         </div>
       </div>
     </div>
   );
 }
 
-function StickyBoard({ letters, setEditingLetter }) {
+function StickyBoard({ letters, setEditingLetter, canDelete = false, onDelete }) {
   const noteColors = ["note-peach", "note-mint", "note-sky", "note-lilac", "note-yellow", "note-pink", "note-teal"];
   const noteTilts = ["tilt-a", "tilt-b", "tilt-c", "tilt-d"];
 
@@ -1281,7 +1313,12 @@ function StickyBoard({ letters, setEditingLetter }) {
               <div className="sticky-note-content">{letter.content}</div>
               <div className="sticky-note-footer">
                 <span className="sticky-note-mark">{letter.updated_at ? "수정됨" : "롤링페이퍼"}</span>
-                <button className="sticky-edit-btn" onClick={() => setEditingLetter(letter)}>편지 수정</button>
+                <div className="sticky-note-actions">
+                  <button className="sticky-edit-btn" onClick={() => setEditingLetter(letter)}>편지 수정</button>
+                  {canDelete && (
+                    <button className="sticky-delete-btn" onClick={() => onDelete?.(letter)}>삭제</button>
+                  )}
+                </div>
               </div>
             </article>
           );
