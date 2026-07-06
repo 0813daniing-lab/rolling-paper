@@ -1637,13 +1637,51 @@ function StickyBoard({ letters, setEditingLetter, canDelete = false, onDelete })
 
 function SidePreview({ track, onClose }) {
   const [activeTab, setActiveTab] = useState("people");
+  const [previewWidth, setPreviewWidth] = useState(() => Math.min(window.innerWidth * 0.72, 1180));
+  const [isResizing, setIsResizing] = useState(false);
   const groupedPeople = groupPeopleByRole(track.students || []);
   const overallLetters = track.track_letters || [];
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    function handleMove(event) {
+      const viewportWidth = window.innerWidth;
+      const nextWidth = viewportWidth - event.clientX;
+      const minWidth = Math.min(520, viewportWidth * 0.92);
+      const maxWidth = viewportWidth * 0.92;
+      setPreviewWidth(Math.max(minWidth, Math.min(maxWidth, nextWidth)));
+    }
+
+    function handleUp() {
+      setIsResizing(false);
+      document.body.classList.remove("preview-resizing");
+    }
+
+    document.body.classList.add("preview-resizing");
+    window.addEventListener("mousemove", handleMove);
+    window.addEventListener("mouseup", handleUp);
+    return () => {
+      window.removeEventListener("mousemove", handleMove);
+      window.removeEventListener("mouseup", handleUp);
+      document.body.classList.remove("preview-resizing");
+    };
+  }, [isResizing]);
 
   return (
     <>
       <div className="side-preview-backdrop" onClick={onClose}></div>
-      <aside className="side-preview">
+      <aside className="side-preview resizable-side-preview" style={{ width: `${previewWidth}px` }}>
+        <div
+          className="side-preview-resize-handle"
+          onMouseDown={(event) => {
+            event.preventDefault();
+            setIsResizing(true);
+          }}
+          title="드래그해서 미리보기 창 너비 조절"
+        >
+          <span></span>
+        </div>
         <div className="side-preview-top">
           <strong>공개 화면 미리보기</strong>
           <button className="side-preview-close" onClick={onClose}>×</button>
