@@ -116,6 +116,35 @@ function RoleMeta({ people }) {
   );
 }
 
+async function copyTextToClipboard(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (error) {
+    console.warn("Clipboard API failed, trying fallback", error);
+  }
+
+  try {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.top = "-9999px";
+    textarea.style.left = "-9999px";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    const copied = document.execCommand("copy");
+    document.body.removeChild(textarea);
+    return copied;
+  } catch (error) {
+    console.warn("Fallback copy failed", error);
+    return false;
+  }
+}
+
 
 function App() {
   const [session, setSession] = useState(null);
@@ -531,11 +560,17 @@ function App() {
     showToast("편지가 수정되었습니다.");
   }
 
-  function copyPublicLink() {
+  async function copyPublicLink() {
     if (!currentTrack) return;
     const link = `${window.location.origin}${window.location.pathname}#/t/${currentTrack.slug}`;
-    navigator.clipboard?.writeText(link);
-    showToast("공개 링크가 복사되었습니다.");
+    const copied = await copyTextToClipboard(link);
+
+    if (copied) {
+      showToast("공개 링크가 복사되었습니다.");
+      return;
+    }
+
+    window.prompt("자동 복사가 막혔습니다. 아래 링크를 직접 복사하세요.", link);
   }
 
   function openAdminTrack(track) {
