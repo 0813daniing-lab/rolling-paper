@@ -1145,3 +1145,159 @@ body.preview-open { overflow: hidden; }
     column-count: 1;
   }
 }
+
+
+/* PDF print fix: remove blank first page and print letters cleanly */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  html,
+  body,
+  #root {
+    width: 100% !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .minimal-top,
+  .public-topbar,
+  .notion-cover,
+  .cover-toolbar,
+  .write-panel,
+  .letter-actions,
+  .student-admin-actions,
+  .no-print,
+  .public-letter-actions,
+  .doc-icon,
+  .doc-kicker,
+  .doc-sub,
+  .public-count-row {
+    display: none !important;
+  }
+
+  .notion-page,
+  .public-page,
+  .app {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  .notion-page > section,
+  .public-page > section {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    break-before: avoid !important;
+    page-break-before: avoid !important;
+  }
+
+  .notion-doc,
+  .public-doc,
+  .card {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #ffffff !important;
+    break-before: avoid !important;
+    page-break-before: avoid !important;
+  }
+
+  .doc-title {
+    margin: 0 0 8mm !important;
+    font-size: 22pt !important;
+    line-height: 1.25 !important;
+    color: #111827 !important;
+    letter-spacing: -0.04em !important;
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+
+  .doc-rule {
+    display: none !important;
+  }
+
+  .split {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .split > div {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .sticky-board-shell {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    overflow: visible !important;
+  }
+
+  .sticky-board {
+    display: block !important;
+    column-count: 2 !important;
+    column-gap: 8mm !important;
+    grid-template-columns: none !important;
+    gap: 0 !important;
+  }
+
+  .sticky-note {
+    display: inline-block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 0 6mm !important;
+    padding: 7mm !important;
+    border: 1px solid #e5e7eb !important;
+    border-radius: 4mm !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    -webkit-column-break-inside: avoid !important;
+    overflow: visible !important;
+    transform: none !important;
+  }
+
+  .sticky-note::before {
+    display: none !important;
+  }
+
+  .sticky-note-content,
+  .sticky-note-writer,
+  .sticky-note-footer {
+    overflow-wrap: anywhere !important;
+    word-break: break-word !important;
+  }
+
+  .btn {
+    display: none !important;
+  }
+}

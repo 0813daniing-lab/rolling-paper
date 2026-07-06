@@ -1223,6 +1223,14 @@ function StudentLetters({ track, student, back, submitLetter, setEditingLetter }
     setContent("");
   }
 
+  function downloadPdf() {
+    document.body.classList.add("print-letters-mode");
+    const cleanup = () => document.body.classList.remove("print-letters-mode");
+    window.addEventListener("afterprint", cleanup, { once: true });
+    window.setTimeout(() => window.print(), 80);
+    window.setTimeout(cleanup, 2000);
+  }
+
   return (
     <div className="split">
       <div className="card write-panel">
@@ -1236,7 +1244,7 @@ function StudentLetters({ track, student, back, submitLetter, setEditingLetter }
       </div>
       <div>
         <div className="top-actions no-print public-letter-actions">
-          <button className="btn soft" onClick={() => window.print()}>PDF 다운</button>
+          <button className="btn soft" onClick={downloadPdf}>PDF 다운</button>
           <button className="btn ghost" onClick={back}>사람 목록으로</button>
         </div>
         <div className="card">
