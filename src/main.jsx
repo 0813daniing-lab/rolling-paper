@@ -29,6 +29,73 @@ function uniqueSlug(text) {
   return `${slugify(text)}-${Date.now().toString(36)}`;
 }
 
+const ROLE_ORDER = { 튜터: 0, 매니저: 1, 수강생: 2 };
+const ROLE_LABELS = ["튜터", "매니저", "수강생"];
+
+function normalizeRole(role) {
+  return ROLE_LABELS.includes(role) ? role : "수강생";
+}
+
+function sortPeople(people = []) {
+  return [...people].sort((a, b) => {
+    const roleDiff = ROLE_ORDER[normalizeRole(a.role)] - ROLE_ORDER[normalizeRole(b.role)];
+    if (roleDiff !== 0) return roleDiff;
+    return String(a.name || "").localeCompare(String(b.name || ""), "ko-KR");
+  });
+}
+
+function parsePeopleInput(raw) {
+  let currentRole = "수강생";
+
+  return String(raw || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .flatMap((line) => {
+      const cleaned = line.replace(/^[-•\s]+/, "").trim();
+      const sectionName = cleaned.replace(/[\[\]():：]/g, "").trim();
+
+      if (ROLE_LABELS.includes(sectionName)) {
+        currentRole = sectionName;
+        return [];
+      }
+
+      const prefixed = cleaned.match(/^(튜터|매니저|수강생)\s*[:：-]?\s+(.+)$/);
+      if (prefixed) {
+        return [{ name: prefixed[2].trim(), role: normalizeRole(prefixed[1]) }];
+      }
+
+      return [{ name: cleaned, role: currentRole }];
+    })
+    .filter((person) => person.name);
+}
+
+function roleCounts(people = []) {
+  return people.reduce(
+    (counts, person) => {
+      counts[normalizeRole(person.role)] += 1;
+      return counts;
+    },
+    { 튜터: 0, 매니저: 0, 수강생: 0 }
+  );
+}
+
+function RoleBadge({ role }) {
+  return <span className={`role-badge role-${normalizeRole(role)}`}>{normalizeRole(role)}</span>;
+}
+
+function RoleMeta({ people }) {
+  const counts = roleCounts(people);
+  return (
+    <div className="meta">
+      {ROLE_LABELS.map((role) => (
+        <span className="pill" key={role}>{role} {counts[role]}명</span>
+      ))}
+    </div>
+  );
+}
+
+
 function App() {
   const [session, setSession] = useState(null);
   const [profile, setProfile] = useState(fallback.profile);
@@ -273,15 +340,12 @@ function App() {
       return;
     }
 
-    const students = rawStudents
-      .split("\n")
-      .map((name) => name.trim())
-      .filter(Boolean)
-      .map((name) => ({
-        track_id: track.id,
-        name,
-        slug: uniqueSlug(name),
-      }));
+    const students = sortPeople(parsePeopleInput(rawStudents)).map((person) => ({
+      track_id: track.id,
+      name: person.name,
+      role: normalizeRole(person.role),
+      slug: uniqueSlug(`${person.role}-${person.name}`),
+    }));
 
     if (students.length) {
       const { error: studentError } = await supabase.from("students").insert(students);
@@ -332,16 +396,19 @@ function App() {
     }
   }
 
-  async function addStudent(name) {
-    if (!name.trim()) {
+  async function addStudent(person) {
+    const name = String(person?.name || person || "").trim();
+    const role = normalizeRole(person?.role);
+    if (!name) {
       showToast("이름을 입력해주세요.");
       return;
     }
 
     const { error } = await supabase.from("students").insert({
       track_id: currentTrack.id,
-      name: name.trim(),
-      slug: uniqueSlug(name),
+      name,
+      role,
+      slug: uniqueSlug(`${role}-${name}`),
     });
 
     if (error) {
@@ -352,18 +419,20 @@ function App() {
     setNameModal(null);
     await refreshCurrentTrack();
     await loadTracks();
-    showToast("수강생이 추가되었습니다.");
+    showToast(`${role}이 추가되었습니다.`);
   }
 
-  async function editStudent(student, name) {
-    if (!name.trim()) {
+  async function editStudent(student, person) {
+    const name = String(person?.name || person || "").trim();
+    const role = normalizeRole(person?.role || student.role);
+    if (!name) {
       showToast("이름을 입력해주세요.");
       return;
     }
 
     const { error } = await supabase
       .from("students")
-      .update({ name: name.trim(), slug: uniqueSlug(name) })
+      .update({ name, role, slug: uniqueSlug(`${role}-${name}`) })
       .eq("id", student.id);
 
     if (error) {
@@ -387,7 +456,7 @@ function App() {
     setConfirm(null);
     await refreshCurrentTrack();
     await loadTracks();
-    showToast("수강생이 삭제되었습니다.");
+    showToast("참여자가 삭제되었습니다.");
   }
 
   async function submitLetter(writerName, content) {
@@ -702,9 +771,7 @@ function Workspace({ profile, tracks, setView, logout, openAdminTrack, setConfir
                 }}>삭제</button>
                 <h3 style={{ paddingRight: 70 }}>{track.title}</h3>
                 <p>{track.description}</p>
-                <div className="meta">
-                  <span className="pill">수강생 {track.students?.length || 0}명</span>
-                </div>
+                <RoleMeta people={track.students || []} />
               </article>
             ))}
           </div>
@@ -740,7 +807,7 @@ function CreateTrack({ profile, setView, createTrack }) {
   const [form, setForm] = useState({
     title: `${profile?.track_name || "단기심화"} ${profile?.batch_name || "7기"} 롤링페이퍼`,
     description: "함께한 동료들에게 마지막 인사를 남겨주세요.",
-    students: "김민수\n이지은\n박준식\n이다혜\n손형호",
+    students: "튜터\n김나현\n박상훈\n이지은\n\n매니저\n정유진\n최민수\n\n수강생\n김신영\n이다혜\n조아영",
   });
 
   return (
@@ -753,7 +820,8 @@ function CreateTrack({ profile, setView, createTrack }) {
         <div className="form">
           <label>페이지 제목 <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
           <label>안내 문구 <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
-          <label>수강생 이름 목록 <textarea value={form.students} onChange={(e) => setForm({ ...form, students: e.target.value })} /></label>
+          <label>참여자 이름 목록 <textarea value={form.students} onChange={(e) => setForm({ ...form, students: e.target.value })} /></label>
+          <p className="form-help">튜터, 매니저, 수강생을 제목처럼 적고 그 아래 이름을 한 줄씩 입력하면 자동으로 분류됩니다. 생성 후에는 튜터 → 매니저 → 수강생 순서, 각 그룹 안에서는 가나다순으로 정렬됩니다.</p>
           <button className="btn primary" onClick={() => createTrack(form)}>페이지 만들기</button>
         </div>
       </div>
@@ -777,14 +845,15 @@ function AdminTrack({ track, copyPublicLink, setPreviewOpen, setView, openStuden
         <h2>{track.title}</h2>
         <p>{track.description}</p>
         <div className="doc-rule"></div>
-        <h3>수강생 관리</h3>
-        <p>수강생을 추가, 수정, 삭제할 수 있습니다. 이름을 누르면 편지 작성 및 받은 편지 확인 페이지로 이동합니다.</p>
+        <h3>참여자 관리</h3>
+        <p>튜터, 매니저, 수강생을 추가, 수정, 삭제할 수 있습니다. 이름을 누르면 편지 작성 및 받은 편지 확인 페이지로 이동합니다.</p>
         <div className="grid person-grid" style={{ marginTop: 18 }}>
           <article className="add-card" onClick={() => setNameModal({ type: "add" })}>
-            <div><div className="plus">+</div><h3>수강생 추가</h3><p>이름을 추가하려면 여기를 누르세요.</p></div>
+            <div><div className="plus">+</div><h3>참여자 추가</h3><p>역할과 이름을 추가하려면 여기를 누르세요.</p></div>
           </article>
-          {track.students?.map((student) => (
+          {sortPeople(track.students).map((student) => (
             <article className="track-card" key={student.id} onClick={() => openStudent(student)}>
+              <RoleBadge role={student.role} />
               <h3>{student.name}</h3>
               <p>클릭하면 작성 폼과 받은 편지를 확인합니다.</p>
               <div className="student-admin-actions">
@@ -795,7 +864,7 @@ function AdminTrack({ track, copyPublicLink, setPreviewOpen, setView, openStuden
                 <button className="btn danger" onClick={(e) => {
                   e.stopPropagation();
                   setConfirm({
-                    title: "수강생 삭제 확인",
+                    title: "참여자 삭제 확인",
                     message: `${student.name}님을 진짜 삭제할까요?`,
                     action: () => deleteStudent(student),
                   });
@@ -845,9 +914,10 @@ function PublicShell({ view, track, student, openStudent, back, submitLetter, se
           <h3>편지를 남길 사람</h3>
           <p>이름을 누르면 바로 편지를 쓰고, 받은 편지를 확인할 수 있습니다.</p>
           <div className="grid person-grid" style={{ marginTop: 18 }}>
-            {track.students?.map((item) => (
+            {sortPeople(track.students).map((item) => (
               <article className="person-card" key={item.id} onClick={() => openStudent(item)}>
                 <div>
+                  <RoleBadge role={item.role} />
                   <div className="person-name">{item.name}</div>
                   <div className="hint">클릭해서 편지 쓰기</div>
                 </div>
@@ -949,9 +1019,10 @@ function SidePreview({ track, onClose }) {
           <h3>편지를 남길 사람</h3>
           <p>실제 공개 링크로 들어온 수강생에게 보이는 화면입니다.</p>
           <div className="grid person-grid" style={{ marginTop: 18 }}>
-            {track.students?.map((student) => (
+            {sortPeople(track.students).map((student) => (
               <article className="person-card" style={{ cursor: "default" }} key={student.id}>
                 <div>
+                  <RoleBadge role={student.role} />
                   <div className="person-name">{student.name}</div>
                   <div className="hint">클릭해서 편지 쓰기</div>
                 </div>
@@ -981,15 +1052,25 @@ function ConfirmModal({ confirm, onClose }) {
 
 function NameModal({ modal, onClose, onSave }) {
   const [value, setValue] = useState(modal.student?.name || "");
+  const [role, setRole] = useState(normalizeRole(modal.student?.role));
   return (
     <div className="modal-backdrop">
       <div className="modal">
-        <h3>{modal.type === "add" ? "수강생 추가" : "수강생 이름 수정"}</h3>
-        <p>이름을 입력해주세요.</p>
-        <input style={{ marginTop: 16 }} value={value} onChange={(e) => setValue(e.target.value)} />
+        <h3>{modal.type === "add" ? "참여자 추가" : "참여자 정보 수정"}</h3>
+        <p>역할과 이름을 입력해주세요.</p>
+        <div className="form" style={{ marginTop: 16 }}>
+          <label>역할
+            <select value={role} onChange={(e) => setRole(e.target.value)}>
+              {ROLE_LABELS.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+          </label>
+          <label>이름
+            <input value={value} onChange={(e) => setValue(e.target.value)} />
+          </label>
+        </div>
         <div className="modal-actions">
           <button className="btn ghost" onClick={onClose}>취소</button>
-          <button className="btn primary" onClick={() => onSave(value)}>저장하기</button>
+          <button className="btn primary" onClick={() => onSave({ name: value, role })}>저장하기</button>
         </div>
       </div>
     </div>

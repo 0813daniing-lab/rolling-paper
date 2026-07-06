@@ -23,10 +23,13 @@ create table if not exists public.students (
   id uuid primary key default gen_random_uuid(),
   track_id uuid not null references public.tracks(id) on delete cascade,
   name text not null,
+  role text not null default '수강생',
   slug text not null,
   created_at timestamptz not null default now(),
   unique(track_id, slug)
 );
+
+alter table public.students add column if not exists role text not null default '수강생';
 
 create table if not exists public.letters (
   id uuid primary key default gen_random_uuid(),

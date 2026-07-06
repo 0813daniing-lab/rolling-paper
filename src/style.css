@@ -144,3 +144,34 @@ body.preview-open { overflow: hidden; }
   .notion-cover { display: none; }
   .split { grid-template-columns: 1fr; }
 }
+
+
+.role-badge {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  border-radius: 999px;
+  padding: 6px 10px;
+  margin-bottom: 10px;
+  border: 1px solid var(--line);
+  background: #fff7f9;
+  color: #be123c;
+  font-size: 12px;
+  font-weight: 900;
+}
+.form-help {
+  margin-top: -8px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.form select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 14px 16px;
+  outline: none;
+  font-size: 15px;
+  font-family: inherit;
+  background: white;
+}
