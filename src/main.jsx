@@ -923,6 +923,8 @@ function App() {
           setNameModal={setNameModal}
           setConfirm={setConfirm}
           deleteStudent={deleteStudent}
+          setEditingTrackLetter={setEditingTrackLetter}
+          deleteTrackLetter={deleteTrackLetter}
         />
       )}
 
@@ -1153,7 +1155,7 @@ function CreateTrack({ profile, setView, createTrack }) {
   );
 }
 
-function AdminTrack({ track, copyPublicLink, setPreviewOpen, setView, openStudent, setNameModal, setConfirm, deleteStudent }) {
+function AdminTrack({ track, copyPublicLink, setPreviewOpen, setView, openStudent, setNameModal, setConfirm, deleteStudent, setEditingTrackLetter, deleteTrackLetter }) {
   const groupedPeople = groupPeopleByRole(track.students || []);
 
   return (
@@ -1220,6 +1222,27 @@ function AdminTrack({ track, copyPublicLink, setPreviewOpen, setView, openStuden
             </section>
           ))}
         </div>
+
+        <div className="doc-rule"></div>
+        <section className="admin-overall-letters">
+          <div className="section-head">
+            <div>
+              <span className="eyebrow">전체 편지 관리</span>
+              <h3>{overallBoardTitle(track)}</h3>
+              <p>공개 링크의 전체 편지 탭에 작성된 글을 확인하고 삭제할 수 있습니다.</p>
+            </div>
+          </div>
+          <div className="card admin-overall-card">
+            <h3>전체 편지 모음</h3>
+            <p>{track.track_letters?.length || 0}개의 글이 모였습니다.</p>
+            <StickyBoard
+              letters={track.track_letters || []}
+              setEditingLetter={setEditingTrackLetter}
+              canDelete={true}
+              onDelete={deleteTrackLetter}
+            />
+          </div>
+        </section>
       </div>
     </main>
   );

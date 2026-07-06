@@ -1518,3 +1518,17 @@ body.preview-open { overflow: hidden; }
     width: 100%;
   }
 }
+
+
+.admin-overall-letters {
+  margin-top: 28px;
+}
+
+.admin-overall-card {
+  margin-top: 14px;
+  background: rgba(255,255,255,.96);
+}
+
+.admin-overall-card .sticky-board-shell {
+  margin-top: 14px;
+}
