@@ -70,6 +70,19 @@ function parsePeopleInput(raw) {
     .filter((person) => person.name);
 }
 
+
+function parseRoleNames(raw, role) {
+  return String(raw || "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => ({
+      name: line.replace(/^[-•\s]+/, "").trim(),
+      role: normalizeRole(role),
+    }))
+    .filter((person) => person.name);
+}
+
 function roleCounts(people = []) {
   return people.reduce(
     (counts, person) => {
@@ -317,10 +330,14 @@ function App() {
   async function createTrack(form) {
     const title = form.title.trim();
     const description = form.description.trim();
-    const rawStudents = form.students.trim();
+    const people = sortPeople([
+      ...parseRoleNames(form.tutors, "튜터"),
+      ...parseRoleNames(form.managers, "매니저"),
+      ...parseRoleNames(form.students, "수강생"),
+    ]);
 
-    if (!title || !rawStudents) {
-      showToast("페이지 제목과 수강생 이름은 필수입니다.");
+    if (!title || !people.length) {
+      showToast("페이지 제목과 참여자 이름은 필수입니다.");
       return;
     }
 
@@ -340,7 +357,7 @@ function App() {
       return;
     }
 
-    const students = sortPeople(parsePeopleInput(rawStudents)).map((person) => ({
+    const students = people.map((person) => ({
       track_id: track.id,
       name: person.name,
       role: normalizeRole(person.role),
@@ -807,7 +824,9 @@ function CreateTrack({ profile, setView, createTrack }) {
   const [form, setForm] = useState({
     title: `${profile?.track_name || "단기심화"} ${profile?.batch_name || "7기"} 롤링페이퍼`,
     description: "함께한 동료들에게 마지막 인사를 남겨주세요.",
-    students: "튜터\n김나현\n박상훈\n이지은\n\n매니저\n정유진\n최민수\n\n수강생\n김신영\n이다혜\n조아영",
+    tutors: "김나현\n박상훈\n이지은",
+    managers: "정유진\n최민수",
+    students: "김신영\n이다혜\n조아영",
   });
 
   return (
@@ -820,8 +839,12 @@ function CreateTrack({ profile, setView, createTrack }) {
         <div className="form">
           <label>페이지 제목 <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></label>
           <label>안내 문구 <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
-          <label>참여자 이름 목록 <textarea value={form.students} onChange={(e) => setForm({ ...form, students: e.target.value })} /></label>
-          <p className="form-help">튜터, 매니저, 수강생을 제목처럼 적고 그 아래 이름을 한 줄씩 입력하면 자동으로 분류됩니다. 생성 후에는 튜터 → 매니저 → 수강생 순서, 각 그룹 안에서는 가나다순으로 정렬됩니다.</p>
+          <div className="role-input-grid">
+            <label>튜터 <textarea value={form.tutors} onChange={(e) => setForm({ ...form, tutors: e.target.value })} placeholder={"김나현\n박상훈\n이지은"} /></label>
+            <label>매니저 <textarea value={form.managers} onChange={(e) => setForm({ ...form, managers: e.target.value })} placeholder={"정유진\n최민수"} /></label>
+            <label>수강생 <textarea value={form.students} onChange={(e) => setForm({ ...form, students: e.target.value })} placeholder={"김신영\n이다혜\n조아영"} /></label>
+          </div>
+          <p className="form-help">각 칸에 이름만 한 줄씩 입력하세요. 생성 후에는 튜터 → 매니저 → 수강생 순서로 나오고, 각 그룹 안에서는 가나다순으로 정렬됩니다.</p>
           <button className="btn primary" onClick={() => createTrack(form)}>페이지 만들기</button>
         </div>
       </div>
