@@ -1670,3 +1670,45 @@ body.preview-open { overflow: hidden; }
 .role-person-grid .track-card {
   border: 1px solid var(--line);
 }
+
+
+/* Overall letters PDF print support */
+.overall-letter-actions {
+  align-self: flex-start;
+}
+
+@media print {
+  body.print-overall-mode .overall-write-panel {
+    display: none !important;
+  }
+
+  body.print-overall-mode .overall-list-card {
+    display: block !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: #ffffff !important;
+  }
+
+  body.print-overall-mode .public-section-head {
+    display: block !important;
+    margin: 0 0 8mm !important;
+  }
+
+  body.print-overall-mode .public-section-head h3 {
+    margin: 0 0 2mm !important;
+    font-size: 16pt !important;
+    color: #111827 !important;
+  }
+
+  body.print-overall-mode .public-section-head p {
+    margin: 0 !important;
+    font-size: 9.5pt !important;
+    color: #6b7280 !important;
+  }
+
+  body.print-overall-mode .overall-letter-actions {
+    display: none !important;
+  }
+}

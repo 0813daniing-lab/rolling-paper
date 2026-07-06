@@ -1425,12 +1425,23 @@ function OverallLetters({ track, submitTrackLetter, setEditingTrackLetter, delet
     setContent("");
   }
 
+  function downloadPdf() {
+    document.body.classList.add("print-letters-mode", "print-overall-mode");
+    const cleanup = () => document.body.classList.remove("print-letters-mode", "print-overall-mode");
+    window.addEventListener("afterprint", cleanup, { once: true });
+    window.setTimeout(() => window.print(), 80);
+    window.setTimeout(cleanup, 2000);
+  }
+
   return (
     <div className="overall-board">
       <div className="public-section-head">
         <div>
           <h3>{title}</h3>
           <p>함께 달려온 우리 트랙 사람들에게 하고 싶은 말을 남겨보세요.</p>
+        </div>
+        <div className="top-actions no-print overall-letter-actions">
+          <button className="btn soft" onClick={downloadPdf}>PDF 다운</button>
         </div>
       </div>
 
