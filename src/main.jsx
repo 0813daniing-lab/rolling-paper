@@ -395,8 +395,8 @@ function App() {
       return;
     }
 
-    setAuthNotice(`${email} 주소로 인증 메일을 보냈습니다. 메일함에서 인증 링크를 누른 뒤 로그인해주세요.`);
-    showToast("인증 메일을 확인해주세요.");
+    setAuthNotice(`${email} 주소로 인증 메일을 보냈습니다. 이 안내가 뜨면 Supabase의 Confirm email 설정이 아직 켜져 있는 상태입니다.`);
+    showToast("Supabase 이메일 인증 설정을 확인해주세요.");
     setView("login");
   }
 
@@ -883,7 +883,7 @@ function AuthPage({ view, setView, login, signup, isConfigured, authNotice, setA
             <h2>회원가입</h2>
             <div className="auth-notice subtle">
               <strong>가입 전 안내</strong>
-              <span>가입 후 입력한 이메일로 인증 링크가 발송됩니다. 메일함에서 인증을 완료한 뒤 로그인해주세요.</span>
+              <span>이메일 인증 없이 바로 관리자 워크스페이스로 이동합니다. 수강생은 공개 링크에서 회원가입 없이 편지를 작성합니다.</span>
             </div>
             <div className="form">
               <label>담당 트랙 <input value={form.trackName} onChange={(e) => setForm({ ...form, trackName: e.target.value })} /></label>
