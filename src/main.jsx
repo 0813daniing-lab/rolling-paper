@@ -29,6 +29,18 @@ function uniqueSlug(text) {
   return `${slugify(text)}-${Date.now().toString(36)}`;
 }
 
+function safeEncodeRoutePart(value = "") {
+  return encodeURIComponent(value);
+}
+
+function safeDecodeRoutePart(value = "") {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 const ROLE_ORDER = { 튜터: 0, 매니저: 1, 수강생: 2 };
 const ROLE_LABELS = ["튜터", "매니저", "수강생"];
 
@@ -233,8 +245,8 @@ function App() {
 
   async function openPublicFromHash(hash) {
     const parts = hash.split("/").filter(Boolean);
-    const trackSlug = parts[1];
-    const studentSlug = parts[2];
+    const trackSlug = safeDecodeRoutePart(parts[1] || "");
+    const studentSlug = safeDecodeRoutePart(parts[2] || "");
 
     const { data: track, error } = await supabase
       .from("tracks")
@@ -562,7 +574,7 @@ function App() {
 
   async function copyPublicLink() {
     if (!currentTrack) return;
-    const link = `${window.location.origin}${window.location.pathname}#/t/${currentTrack.slug}`;
+    const link = `${window.location.origin}${window.location.pathname}#/t/${safeEncodeRoutePart(currentTrack.slug)}`;
     const copied = await copyTextToClipboard(link);
 
     if (copied) {
@@ -577,7 +589,7 @@ function App() {
     setCurrentTrack(track);
     setCurrentStudent(null);
     setView("adminTrack");
-    history.pushState({ view: "adminTrack", trackId: track.id }, "", `#/admin/${track.slug}`);
+    history.pushState({ view: "adminTrack", trackId: track.id }, "", `#/admin/${safeEncodeRoutePart(track.slug)}`);
   }
 
   function openStudent(student, mode = "public") {
@@ -587,7 +599,7 @@ function App() {
     history.pushState(
       { view: "student", trackId: currentTrack.id, studentId: student.id, mode },
       "",
-      `#/${prefix}/${currentTrack.slug}/${student.slug}`
+      `#/${prefix}/${safeEncodeRoutePart(currentTrack.slug)}/${safeEncodeRoutePart(student.slug)}`
     );
   }
 
