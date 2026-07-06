@@ -1346,7 +1346,7 @@ function PublicShell({
           <div className="public-section-head">
             <div>
               <h3>편지를 남길 사람</h3>
-              <p>역할별로 정리된 이름을 선택하면 바로 편지를 작성할 수 있습니다.</p>
+              <p>고마웠던 사람들에게 개별 편지를 남겨보세요.</p>
             </div>
           </div>
 
@@ -1410,7 +1410,7 @@ function OverallLetters({ track, submitTrackLetter, setEditingTrackLetter, delet
       <div className="public-section-head">
         <div>
           <h3>{title}</h3>
-          <p>피그잼 회고처럼 짧게 남긴 말을 한곳에 모아볼 수 있습니다.</p>
+          <p>함께 달려온 우리 트랙 사람들에게 하고 싶은 말을 남겨보세요.</p>
         </div>
       </div>
 
