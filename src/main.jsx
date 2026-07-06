@@ -6,6 +6,21 @@ import "./style.css";
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 const publicSiteUrl = (import.meta.env.VITE_PUBLIC_SITE_URL || "https://rolling-paper-plum.vercel.app").replace(/\/$/, "");
+const internalAuthDomain = "rolling-paper-admin.app";
+
+function adminIdToEmail(adminId) {
+  const raw = String(adminId || "").trim().toLowerCase();
+  if (raw.includes("@")) return raw;
+
+  const safeId = encodeURIComponent(raw)
+    .toLowerCase()
+    .replace(/%/g, "x")
+    .replace(/[^a-z0-9._-]/g, "x")
+    .replace(/^[._-]+|[._-]+$/g, "")
+    .slice(0, 64) || "admin";
+
+  return `${safeId}@${internalAuthDomain}`;
+}
 
 const supabase =
   supabaseUrl && supabaseAnonKey
@@ -284,6 +299,7 @@ function App() {
     const fallbackProfile = {
       id: session.user.id,
       manager_name: meta.manager_name || "",
+      position: meta.position || "",
       track_name: meta.track_name || "",
       batch_name: meta.batch_name || "",
       phone: meta.phone || "",
@@ -382,15 +398,16 @@ function App() {
       return;
     }
 
-    const email = form.email.trim();
+    const adminId = form.adminId.trim();
+    const email = adminIdToEmail(adminId);
     const password = form.password.trim();
     const managerName = form.managerName.trim();
+    const position = form.position.trim();
     const trackName = form.trackName.trim();
     const batchName = form.batchName.trim();
-    const phone = form.phone.trim();
 
-    if (!email || !password || !managerName || !trackName || !batchName || !phone) {
-      showToast("회원가입 항목을 모두 입력해주세요.");
+    if (!adminId || !password || !managerName || !position || !trackName || !batchName) {
+      showToast("아이디, 비밀번호, 트랙, 기수, 이름, 직급을 모두 입력해주세요.");
       return;
     }
 
@@ -399,10 +416,12 @@ function App() {
       password,
       options: {
         data: {
+          admin_id: adminId,
           manager_name: managerName,
+          position,
           track_name: trackName,
           batch_name: batchName,
-          phone,
+          phone: "",
           email,
         },
       },
@@ -417,9 +436,10 @@ function App() {
       await supabase.from("profiles").upsert({
         id: data.session.user.id,
         manager_name: managerName,
+        position,
         track_name: trackName,
         batch_name: batchName,
-        phone,
+        phone: "",
         email,
       });
       setAuthNotice("");
@@ -428,21 +448,23 @@ function App() {
       return;
     }
 
-    setAuthNotice(`${email} 주소로 인증 메일을 보냈습니다. 이 안내가 뜨면 Supabase의 Confirm email 설정이 아직 켜져 있는 상태입니다.`);
+    setAuthNotice("가입 후 바로 이동되지 않는다면 Supabase의 Confirm email 설정이 아직 켜져 있는 상태입니다. Confirm email을 꺼주세요.");
     showToast("Supabase 이메일 인증 설정을 확인해주세요.");
     setView("login");
   }
 
-  async function login(email, password) {
+  async function login(adminId, password) {
     if (!supabase) {
       showToast("Supabase 환경변수를 먼저 연결해주세요.");
       return;
     }
 
-    if (!email || !password) {
-      showToast("이메일과 비밀번호를 입력해주세요.");
+    if (!adminId || !password) {
+      showToast("아이디와 비밀번호를 입력해주세요.");
       return;
     }
+
+    const email = adminIdToEmail(adminId);
 
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
@@ -469,14 +491,13 @@ function App() {
   async function saveProfile(nextProfile) {
     const payload = {
       manager_name: nextProfile.manager_name.trim(),
+      position: nextProfile.position.trim(),
       track_name: nextProfile.track_name.trim(),
       batch_name: nextProfile.batch_name.trim(),
-      email: nextProfile.email.trim(),
-      phone: nextProfile.phone.trim(),
     };
 
-    if (!payload.manager_name || !payload.track_name || !payload.batch_name || !payload.email || !payload.phone) {
-      showToast("내 정보 항목을 모두 입력해주세요.");
+    if (!payload.manager_name || !payload.position || !payload.track_name || !payload.batch_name) {
+      showToast("담당 트랙, 기수, 이름, 직급을 모두 입력해주세요.");
       return;
     }
 
@@ -1011,14 +1032,14 @@ function App() {
 }
 
 function AuthPage({ view, setView, login, signup, isConfigured, authNotice, setAuthNotice }) {
-  const [loginEmail, setLoginEmail] = useState("");
+  const [loginAdminId, setLoginAdminId] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [form, setForm] = useState({
     trackName: "단기심화",
     batchName: "7기",
     managerName: "이주영",
-    email: "",
-    phone: "",
+    position: "학습관리매니저",
+    adminId: "",
     password: "",
   });
 
@@ -1044,7 +1065,7 @@ function AuthPage({ view, setView, login, signup, isConfigured, authNotice, setA
 
       {authNotice && (
         <div className="auth-notice">
-          <strong>이메일 인증이 필요합니다.</strong>
+          <strong>가입 설정 확인이 필요합니다.</strong>
           <span>{authNotice}</span>
         </div>
       )}
@@ -1058,11 +1079,11 @@ function AuthPage({ view, setView, login, signup, isConfigured, authNotice, setA
           </div>
           <div className="card">
             <h2>관리자 로그인</h2>
-            <p>Supabase 이메일과 비밀번호로 로그인합니다.</p>
+            <p>아이디와 비밀번호로 로그인합니다.</p>
             <div className="form">
-              <label>이메일 <input value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="manager@example.com" /></label>
+              <label>아이디 <input value={loginAdminId} onChange={(e) => setLoginAdminId(e.target.value)} placeholder="예: jy-manager" /></label>
               <label>비밀번호 <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} /></label>
-              <button className="btn primary" onClick={() => login(loginEmail, loginPassword)}>로그인</button>
+              <button className="btn primary" onClick={() => login(loginAdminId, loginPassword)}>로그인</button>
               <button className="btn ghost" onClick={() => { setAuthNotice(""); setView("signup"); }}>회원가입</button>
             </div>
           </div>
@@ -1078,14 +1099,14 @@ function AuthPage({ view, setView, login, signup, isConfigured, authNotice, setA
             <h2>회원가입</h2>
             <div className="auth-notice subtle">
               <strong>가입 전 안내</strong>
-              <span>이메일 인증 없이 바로 관리자 워크스페이스로 이동합니다. 수강생은 공개 링크에서 회원가입 없이 편지를 작성합니다.</span>
+              <span>아이디와 비밀번호로 관리자 워크스페이스를 만듭니다. 수강생은 공개 링크에서 회원가입 없이 편지를 작성합니다.</span>
             </div>
             <div className="form">
               <label>담당 트랙 <input value={form.trackName} onChange={(e) => setForm({ ...form, trackName: e.target.value })} /></label>
               <label>기수 <input value={form.batchName} onChange={(e) => setForm({ ...form, batchName: e.target.value })} /></label>
               <label>이름 <input value={form.managerName} onChange={(e) => setForm({ ...form, managerName: e.target.value })} /></label>
-              <label>이메일 <input value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></label>
-              <label>전화번호 <input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></label>
+              <label>직급 <input value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} placeholder="예: 학습관리매니저, 리드매니저" /></label>
+              <label>아이디 <input value={form.adminId} onChange={(e) => setForm({ ...form, adminId: e.target.value })} placeholder="예: jy-manager" /></label>
               <label>비밀번호 <input type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></label>
               <button className="btn primary" onClick={() => signup(form)}>가입하고 시작하기</button>
               <button className="btn ghost" onClick={() => { setAuthNotice(""); setView("login"); }}>로그인으로 돌아가기</button>
@@ -1163,7 +1184,7 @@ function Profile({ profile, saveProfile, setView }) {
 
   useEffect(() => {
     setForm(profile || {});
-  }, [profile?.id, profile?.manager_name, profile?.track_name, profile?.batch_name, profile?.email, profile?.phone]);
+  }, [profile?.id, profile?.manager_name, profile?.position, profile?.track_name, profile?.batch_name]);
 
   return (
     <main className="app">
@@ -1176,8 +1197,7 @@ function Profile({ profile, saveProfile, setView }) {
           <label>담당 트랙 <input value={form.track_name || ""} onChange={(e) => setForm({ ...form, track_name: e.target.value })} /></label>
           <label>기수 <input value={form.batch_name || ""} onChange={(e) => setForm({ ...form, batch_name: e.target.value })} /></label>
           <label>이름 <input value={form.manager_name || ""} onChange={(e) => setForm({ ...form, manager_name: e.target.value })} /></label>
-          <label>이메일 <input value={form.email || ""} onChange={(e) => setForm({ ...form, email: e.target.value })} /></label>
-          <label>전화번호 <input value={form.phone || ""} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></label>
+          <label>직급 <input value={form.position || ""} onChange={(e) => setForm({ ...form, position: e.target.value })} placeholder="예: 학습관리매니저, 리드매니저" /></label>
           <button className="btn primary" onClick={() => saveProfile(form)}>저장하기</button>
         </div>
       </div>

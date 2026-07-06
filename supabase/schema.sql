@@ -3,12 +3,15 @@ create extension if not exists pgcrypto;
 create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   manager_name text not null,
+  position text,
   track_name text not null,
   batch_name text not null,
   phone text,
   email text,
   created_at timestamptz not null default now()
 );
+
+alter table public.profiles add column if not exists position text;
 
 create table if not exists public.tracks (
   id uuid primary key default gen_random_uuid(),
