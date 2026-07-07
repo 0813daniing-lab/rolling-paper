@@ -1914,3 +1914,126 @@ body.preview-open { overflow: hidden; }
     display: none;
   }
 }
+
+
+/* Drag-select and bulk delete letters */
+.letter-select-toolbar {
+  position: sticky;
+  top: 10px;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 18px;
+  padding: 10px 12px;
+  border: 1px solid rgba(226,232,240,.92);
+  border-radius: 999px;
+  background: rgba(255,255,255,.94);
+  box-shadow: 0 18px 44px rgba(15,23,42,.10);
+  backdrop-filter: blur(10px);
+}
+
+.letter-select-toolbar span {
+  padding: 0 8px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.letter-select-toolbar button {
+  border: 0;
+  border-radius: 999px;
+  padding: 9px 13px;
+  background: #f1f5f9;
+  color: #475569;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.letter-select-toolbar button:hover:not(:disabled) {
+  filter: brightness(.98);
+}
+
+.letter-select-toolbar button:disabled {
+  opacity: .48;
+  cursor: not-allowed;
+}
+
+.letter-select-toolbar button.danger {
+  background: #ffe4e9;
+  color: #e6003c;
+}
+
+.letter-select-toolbar button.danger-soft {
+  background: #fff1f5;
+  color: #9f1239;
+}
+
+.sticky-board-selectable .sticky-note {
+  cursor: grab;
+  user-select: none;
+}
+
+.sticky-board-selectable .sticky-note:active {
+  cursor: grabbing;
+}
+
+.sticky-note.selected {
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px rgba(37,99,235,.14), 0 18px 34px rgba(15,23,42,.13);
+}
+
+.sticky-select-check {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+  border: 1px solid rgba(148,163,184,.55);
+  color: #2563eb;
+  font-size: 17px;
+  font-weight: 950;
+  box-shadow: 0 8px 18px rgba(15,23,42,.12);
+}
+
+.sticky-note.selected .sticky-select-check {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+.letter-drag-selecting,
+.letter-drag-selecting * {
+  user-select: none !important;
+}
+
+@media print {
+  .letter-select-toolbar,
+  .sticky-select-check {
+    display: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .letter-select-toolbar {
+    position: static;
+    width: 100%;
+    border-radius: 22px;
+  }
+
+  .letter-select-toolbar button {
+    flex: 1 1 auto;
+  }
+}

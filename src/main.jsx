@@ -233,7 +233,8 @@ function App() {
 
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
-      if (data.session && !isPublicHash() && !isAdminHash()) {
+      const hash = getCurrentHash();
+      if (data.session && !isPublicHash(hash) && !isAdminHash(hash)) {
         setView("workspace");
       }
       setLoading(false);
@@ -241,7 +242,7 @@ function App() {
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       setSession(nextSession);
-      if (nextSession && !isPublicHash() && !isAdminHash()) setView("workspace");
+      // 창 전환, 포커스 복귀, 토큰 갱신 때 현재 관리자 화면을 워크스페이스로 강제 이동시키지 않습니다.
     });
 
     return () => listener.subscription.unsubscribe();
@@ -277,6 +278,45 @@ function App() {
     window.addEventListener("hashchange", openPublicRoute);
     return () => window.removeEventListener("hashchange", openPublicRoute);
   }, [isConfigured]);
+
+  useEffect(() => {
+    if (!supabase || !session?.user) return;
+
+    const keepAdminRoute = () => {
+      const hash = getCurrentHash();
+      if (!isAdminHash(hash)) return;
+      openAdminFromHash(hash);
+    };
+
+    keepAdminRoute();
+    window.addEventListener("hashchange", keepAdminRoute);
+    window.addEventListener("focus", keepAdminRoute);
+    document.addEventListener("visibilitychange", keepAdminRoute);
+
+    return () => {
+      window.removeEventListener("hashchange", keepAdminRoute);
+      window.removeEventListener("focus", keepAdminRoute);
+      document.removeEventListener("visibilitychange", keepAdminRoute);
+    };
+  }, [session?.user?.id]);
+
+  useEffect(() => {
+    if (!supabase || !session?.user) return;
+
+    const restoreOnReturn = () => {
+      const hash = getCurrentHash();
+      if (hash) return;
+      restoreRememberedAdminRoute();
+    };
+
+    window.addEventListener("focus", restoreOnReturn);
+    document.addEventListener("visibilitychange", restoreOnReturn);
+
+    return () => {
+      window.removeEventListener("focus", restoreOnReturn);
+      document.removeEventListener("visibilitychange", restoreOnReturn);
+    };
+  }, [session?.user?.id, view, studentMode]);
 
   async function loadProfile() {
     const { data, error } = await supabase
@@ -777,6 +817,35 @@ function App() {
     showToast("전체 편지가 삭제되었습니다.");
   }
 
+  async function deleteTrackLetters(letters) {
+    if (!session?.user) {
+      showToast("관리자만 편지를 삭제할 수 있습니다.");
+      return;
+    }
+
+    const ids = (letters || []).map((letter) => letter.id).filter(Boolean);
+    if (!ids.length) {
+      showToast("삭제할 편지를 선택해주세요.");
+      return;
+    }
+
+    const ok = window.confirm(`선택한 전체 편지 ${ids.length}개를 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.`);
+    if (!ok) return;
+
+    const { error } = await supabase
+      .from("track_letters")
+      .delete()
+      .in("id", ids);
+
+    if (error) {
+      showToast(error.message);
+      return;
+    }
+
+    await refreshCurrentTrack();
+    showToast(`${ids.length}개의 전체 편지가 삭제되었습니다.`);
+  }
+
   async function deleteLetter(letter) {
     if (!session?.user) {
       showToast("관리자만 편지를 삭제할 수 있습니다.");
@@ -798,6 +867,35 @@ function App() {
 
     await refreshCurrentTrack();
     showToast("편지가 삭제되었습니다.");
+  }
+
+  async function deleteLetters(letters) {
+    if (!session?.user) {
+      showToast("관리자만 편지를 삭제할 수 있습니다.");
+      return;
+    }
+
+    const ids = (letters || []).map((letter) => letter.id).filter(Boolean);
+    if (!ids.length) {
+      showToast("삭제할 편지를 선택해주세요.");
+      return;
+    }
+
+    const ok = window.confirm(`선택한 편지 ${ids.length}개를 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.`);
+    if (!ok) return;
+
+    const { error } = await supabase
+      .from("letters")
+      .delete()
+      .in("id", ids);
+
+    if (error) {
+      showToast(error.message);
+      return;
+    }
+
+    await refreshCurrentTrack();
+    showToast(`${ids.length}개의 편지가 삭제되었습니다.`);
   }
 
   async function openAdminFromHash(hash) {
@@ -859,11 +957,37 @@ function App() {
     window.prompt("자동 복사가 막혔습니다. 아래 링크를 직접 복사하세요.", link);
   }
 
+  function rememberAdminRoute(trackId, studentId = "") {
+    try {
+      sessionStorage.setItem("rollingPaperAdminRoute", JSON.stringify({ trackId, studentId }));
+    } catch {
+      // ignore storage errors
+    }
+  }
+
+  async function restoreRememberedAdminRoute() {
+    if (!session?.user?.id) return false;
+
+    let saved = null;
+    try {
+      saved = JSON.parse(sessionStorage.getItem("rollingPaperAdminRoute") || "null");
+    } catch {
+      saved = null;
+    }
+
+    if (!saved?.trackId) return false;
+    if (view !== "adminTrack" && !(view === "student" && studentMode === "admin")) return false;
+
+    await openAdminFromHash(`/admin/${safeEncodeRoutePart(saved.trackId)}${saved.studentId ? `/${safeEncodeRoutePart(saved.studentId)}` : ""}`);
+    return true;
+  }
+
   function openAdminTrack(track) {
     setCurrentTrack(track);
     setCurrentStudent(null);
     setStudentMode("admin");
     setView("adminTrack");
+    rememberAdminRoute(track.id);
     history.pushState({ view: "adminTrack", trackId: track.id }, "", `#/admin/${safeEncodeRoutePart(track.id)}`);
   }
 
@@ -872,6 +996,8 @@ function App() {
     setStudentMode(mode);
     setView("student");
     const prefix = mode === "admin" ? "admin" : "t";
+    if (mode === "admin") rememberAdminRoute(currentTrack.id, student.id);
+
     history.pushState(
       { view: "student", trackId: currentTrack.id, studentId: student.id, mode },
       "",
@@ -894,7 +1020,7 @@ function App() {
     };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
-  }, [view, currentTrack?.id]);
+  }, [view, currentTrack?.id, studentMode, session?.user?.id]);
 
   if (loading) return <div className="app">불러오는 중...</div>;
 
@@ -1008,6 +1134,7 @@ function App() {
           deleteStudent={deleteStudent}
           setEditingTrackLetter={setEditingTrackLetter}
           deleteTrackLetter={deleteTrackLetter}
+          deleteTrackLetters={deleteTrackLetters}
         />
       )}
 
@@ -1023,7 +1150,9 @@ function App() {
           setEditingLetter={setEditingLetter}
           setEditingTrackLetter={setEditingTrackLetter}
           deleteLetter={deleteLetter}
+          deleteLetters={deleteLetters}
           deleteTrackLetter={deleteTrackLetter}
+          deleteTrackLetters={deleteTrackLetters}
           isAdmin={studentMode === "admin"}
         />
       )}
@@ -1237,7 +1366,7 @@ function CreateTrack({ profile, setView, createTrack }) {
   );
 }
 
-function AdminTrack({ track, copyPublicLink, setPreviewOpen, setView, openStudent, setNameModal, setConfirm, deleteStudent, setEditingTrackLetter, deleteTrackLetter }) {
+function AdminTrack({ track, copyPublicLink, setPreviewOpen, setView, openStudent, setNameModal, setConfirm, deleteStudent, setEditingTrackLetter, deleteTrackLetter, deleteTrackLetters }) {
   const groupedPeople = groupPeopleByRole(track.students || []);
   const [adminTab, setAdminTab] = useState("people");
 
@@ -1341,6 +1470,7 @@ function AdminTrack({ track, copyPublicLink, setPreviewOpen, setView, openStuden
                 setEditingLetter={setEditingTrackLetter}
                 canDelete={true}
                 onDelete={deleteTrackLetter}
+                onDeleteMany={deleteTrackLetters}
               />
             </div>
           </section>
@@ -1403,7 +1533,9 @@ function PublicShell({
   setEditingLetter,
   setEditingTrackLetter,
   deleteLetter,
+  deleteLetters,
   deleteTrackLetter,
+  deleteTrackLetters,
   isAdmin = false,
 }) {
   const [activeTab, setActiveTab] = useState("people");
@@ -1418,6 +1550,7 @@ function PublicShell({
           submitLetter={submitLetter}
           setEditingLetter={setEditingLetter}
           deleteLetter={deleteLetter}
+          deleteLetters={deleteLetters}
           isAdmin={isAdmin}
         />
       </PublicPageLayout>
@@ -1488,6 +1621,7 @@ function PublicShell({
           submitTrackLetter={submitTrackLetter}
           setEditingTrackLetter={setEditingTrackLetter}
           deleteTrackLetter={deleteTrackLetter}
+          deleteTrackLetters={deleteTrackLetters}
           isAdmin={isAdmin}
         />
       )}
@@ -1495,7 +1629,7 @@ function PublicShell({
   );
 }
 
-function OverallLetters({ track, submitTrackLetter, setEditingTrackLetter, deleteTrackLetter, isAdmin = false }) {
+function OverallLetters({ track, submitTrackLetter, setEditingTrackLetter, deleteTrackLetter, deleteTrackLetters, isAdmin = false }) {
   const [writer, setWriter] = useState("");
   const [content, setContent] = useState("");
   const letters = track.track_letters || [];
@@ -1545,13 +1679,14 @@ function OverallLetters({ track, submitTrackLetter, setEditingTrackLetter, delet
           setEditingLetter={setEditingTrackLetter}
           canDelete={isAdmin}
           onDelete={deleteTrackLetter}
+          onDeleteMany={deleteTrackLetters}
         />
       </div>
     </div>
   );
 }
 
-function StudentLetters({ track, student, back, submitLetter, setEditingLetter, deleteLetter, isAdmin = false }) {
+function StudentLetters({ track, student, back, submitLetter, setEditingLetter, deleteLetter, deleteLetters, isAdmin = false }) {
   const [writer, setWriter] = useState("");
   const [content, setContent] = useState("");
   const letters = track.letters?.filter((letter) => letter.student_id === student.id) || [];
@@ -1589,16 +1724,65 @@ function StudentLetters({ track, student, back, submitLetter, setEditingLetter, 
         <div className="card">
           <h3>받은 편지</h3>
           <p>{student.name}님이 받은 편지 {letters.length}개</p>
-          <StickyBoard letters={letters} setEditingLetter={setEditingLetter} canDelete={isAdmin} onDelete={deleteLetter} />
+          <StickyBoard letters={letters} setEditingLetter={setEditingLetter} canDelete={isAdmin} onDelete={deleteLetter} onDeleteMany={deleteLetters} />
         </div>
       </div>
     </div>
   );
 }
 
-function StickyBoard({ letters, setEditingLetter, canDelete = false, onDelete }) {
+function StickyBoard({ letters, setEditingLetter, canDelete = false, onDelete, onDeleteMany }) {
   const noteColors = ["note-peach", "note-mint", "note-sky", "note-lilac", "note-yellow", "note-pink", "note-teal"];
   const noteTilts = ["tilt-a", "tilt-b", "tilt-c", "tilt-d"];
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [isDragSelecting, setIsDragSelecting] = useState(false);
+
+  const selectedLetters = letters.filter((letter) => selectedIds.includes(letter.id));
+  const allSelected = letters.length > 0 && selectedIds.length === letters.length;
+
+  useEffect(() => {
+    setSelectedIds((ids) => ids.filter((id) => letters.some((letter) => letter.id === id)));
+  }, [letters]);
+
+  useEffect(() => {
+    if (!isDragSelecting) return;
+
+    function stopSelecting() {
+      setIsDragSelecting(false);
+      document.body.classList.remove("letter-drag-selecting");
+    }
+
+    document.body.classList.add("letter-drag-selecting");
+    window.addEventListener("pointerup", stopSelecting);
+    window.addEventListener("blur", stopSelecting);
+    return () => {
+      window.removeEventListener("pointerup", stopSelecting);
+      window.removeEventListener("blur", stopSelecting);
+      document.body.classList.remove("letter-drag-selecting");
+    };
+  }, [isDragSelecting]);
+
+  function toggleLetter(letter) {
+    setSelectedIds((ids) => ids.includes(letter.id) ? ids.filter((id) => id !== letter.id) : [...ids, letter.id]);
+  }
+
+  function addLetter(letter) {
+    setSelectedIds((ids) => ids.includes(letter.id) ? ids : [...ids, letter.id]);
+  }
+
+  function selectAll() {
+    setSelectedIds(letters.map((letter) => letter.id));
+  }
+
+  async function deleteSelected() {
+    await onDeleteMany?.(selectedLetters);
+    setSelectedIds([]);
+  }
+
+  async function deleteAll() {
+    await onDeleteMany?.(letters);
+    setSelectedIds([]);
+  }
 
   if (!letters.length) {
     return (
@@ -1610,12 +1794,37 @@ function StickyBoard({ letters, setEditingLetter, canDelete = false, onDelete })
 
   return (
     <div className="sticky-board-shell">
-      <div className="sticky-board">
+      {canDelete && (
+        <div className="letter-select-toolbar no-print">
+          <span>{selectedIds.length ? `${selectedIds.length}개 선택됨` : "드래그해서 편지 선택"}</span>
+          <button type="button" onClick={selectAll}>{allSelected ? "전체 선택됨" : "전체 선택"}</button>
+          <button type="button" className="danger" disabled={!selectedIds.length} onClick={deleteSelected}>선택 삭제</button>
+          <button type="button" className="danger-soft" onClick={deleteAll}>전체 삭제</button>
+          <button type="button" disabled={!selectedIds.length} onClick={() => setSelectedIds([])}>선택 해제</button>
+        </div>
+      )}
+      <div className={`sticky-board ${canDelete ? "sticky-board-selectable" : ""}`}>
         {letters.map((letter, index) => {
           const textLength = `${letter.writer_name}\n${letter.content}`.length;
           const sizeClass = textLength > 230 ? "note-long" : textLength > 120 ? "note-mid" : "note-short";
+          const isSelected = selectedIds.includes(letter.id);
+
           return (
-            <article className={`sticky-note ${noteColors[index % noteColors.length]} ${noteTilts[index % noteTilts.length]} ${sizeClass}`} key={letter.id}>
+            <article
+              className={`sticky-note ${noteColors[index % noteColors.length]} ${noteTilts[index % noteTilts.length]} ${sizeClass} ${isSelected ? "selected" : ""}`}
+              key={letter.id}
+              onPointerDown={(event) => {
+                if (!canDelete || event.target.closest("button")) return;
+                event.preventDefault();
+                toggleLetter(letter);
+                setIsDragSelecting(true);
+              }}
+              onPointerEnter={() => {
+                if (!canDelete || !isDragSelecting) return;
+                addLetter(letter);
+              }}
+            >
+              {canDelete && <div className="sticky-select-check">{isSelected ? "✓" : ""}</div>}
               <div className="sticky-note-writer">{letter.writer_name}</div>
               <div className="sticky-note-content">{letter.content}</div>
               <div className="sticky-note-footer">
