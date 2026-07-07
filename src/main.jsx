@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { createClient } from "@supabase/supabase-js";
 import "./style.css";
@@ -1735,7 +1735,10 @@ function StickyBoard({ letters, setEditingLetter, canDelete = false, onDelete, o
   const noteColors = ["note-peach", "note-mint", "note-sky", "note-lilac", "note-yellow", "note-pink", "note-teal"];
   const noteTilts = ["tilt-a", "tilt-b", "tilt-c", "tilt-d"];
   const [selectedIds, setSelectedIds] = useState([]);
-  const [isDragSelecting, setIsDragSelecting] = useState(false);
+  const [selectionBox, setSelectionBox] = useState(null);
+  const noteRefs = useRef(new Map());
+  const dragStateRef = useRef(null);
+  const dragMovedRef = useRef(false);
 
   const selectedLetters = letters.filter((letter) => selectedIds.includes(letter.id));
   const allSelected = letters.length > 0 && selectedIds.length === letters.length;
@@ -1744,30 +1747,35 @@ function StickyBoard({ letters, setEditingLetter, canDelete = false, onDelete, o
     setSelectedIds((ids) => ids.filter((id) => letters.some((letter) => letter.id === id)));
   }, [letters]);
 
-  useEffect(() => {
-    if (!isDragSelecting) return;
-
-    function stopSelecting() {
-      setIsDragSelecting(false);
-      document.body.classList.remove("letter-drag-selecting");
-    }
-
-    document.body.classList.add("letter-drag-selecting");
-    window.addEventListener("pointerup", stopSelecting);
-    window.addEventListener("blur", stopSelecting);
-    return () => {
-      window.removeEventListener("pointerup", stopSelecting);
-      window.removeEventListener("blur", stopSelecting);
-      document.body.classList.remove("letter-drag-selecting");
+  function normalizeSelectionBox(startX, startY, currentX, currentY) {
+    return {
+      left: Math.min(startX, currentX),
+      top: Math.min(startY, currentY),
+      width: Math.abs(currentX - startX),
+      height: Math.abs(currentY - startY),
     };
-  }, [isDragSelecting]);
-
-  function toggleLetter(letter) {
-    setSelectedIds((ids) => ids.includes(letter.id) ? ids.filter((id) => id !== letter.id) : [...ids, letter.id]);
   }
 
-  function addLetter(letter) {
-    setSelectedIds((ids) => ids.includes(letter.id) ? ids : [...ids, letter.id]);
+  function boxesIntersect(box, rect) {
+    return !(
+      rect.right < box.left ||
+      rect.left > box.left + box.width ||
+      rect.bottom < box.top ||
+      rect.top > box.top + box.height
+    );
+  }
+
+  function idsInsideBox(box) {
+    const nextIds = [];
+    noteRefs.current.forEach((node, id) => {
+      if (!node) return;
+      if (boxesIntersect(box, node.getBoundingClientRect())) nextIds.push(id);
+    });
+    return nextIds;
+  }
+
+  function toggleLetterId(id) {
+    setSelectedIds((ids) => ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id]);
   }
 
   function selectAll() {
@@ -1775,14 +1783,91 @@ function StickyBoard({ letters, setEditingLetter, canDelete = false, onDelete, o
   }
 
   async function deleteSelected() {
+    if (!selectedLetters.length) return;
     await onDeleteMany?.(selectedLetters);
     setSelectedIds([]);
   }
 
   async function deleteAll() {
+    if (!letters.length) return;
     await onDeleteMany?.(letters);
     setSelectedIds([]);
   }
+
+  function beginSelection(event) {
+    if (!canDelete) return;
+    if (event.target.closest("button, input, textarea, select, a")) return;
+
+    const card = event.target.closest("[data-letter-card='true']");
+    dragStateRef.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      clickedId: card?.dataset.letterId || "",
+    };
+    dragMovedRef.current = false;
+    setSelectionBox({ left: event.clientX, top: event.clientY, width: 0, height: 0 });
+    event.preventDefault();
+  }
+
+  useEffect(() => {
+    if (!canDelete || !selectionBox) return;
+
+    function handlePointerMove(event) {
+      const state = dragStateRef.current;
+      if (!state) return;
+
+      const deltaX = Math.abs(event.clientX - state.startX);
+      const deltaY = Math.abs(event.clientY - state.startY);
+      const nextBox = normalizeSelectionBox(state.startX, state.startY, event.clientX, event.clientY);
+      setSelectionBox(nextBox);
+
+      if (deltaX > 4 || deltaY > 4) {
+        dragMovedRef.current = true;
+        setSelectedIds(idsInsideBox(nextBox));
+      }
+    }
+
+    function finishSelection() {
+      const state = dragStateRef.current;
+
+      if (state && !dragMovedRef.current) {
+        if (state.clickedId) toggleLetterId(state.clickedId);
+        else setSelectedIds([]);
+      }
+
+      dragStateRef.current = null;
+      dragMovedRef.current = false;
+      setSelectionBox(null);
+      document.body.classList.remove("letter-drag-selecting");
+    }
+
+    document.body.classList.add("letter-drag-selecting");
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", finishSelection);
+    window.addEventListener("blur", finishSelection);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", finishSelection);
+      window.removeEventListener("blur", finishSelection);
+      document.body.classList.remove("letter-drag-selecting");
+    };
+  }, [canDelete, selectionBox, letters]);
+
+  useEffect(() => {
+    if (!canDelete || !selectedIds.length) return;
+
+    function handleKeyDown(event) {
+      const activeTag = document.activeElement?.tagName;
+      if (["INPUT", "TEXTAREA", "SELECT"].includes(activeTag)) return;
+      if (event.key !== "Backspace" && event.key !== "Delete") return;
+      event.preventDefault();
+      deleteSelected();
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [canDelete, selectedIds, letters]);
 
   if (!letters.length) {
     return (
@@ -1793,16 +1878,30 @@ function StickyBoard({ letters, setEditingLetter, canDelete = false, onDelete, o
   }
 
   return (
-    <div className="sticky-board-shell">
-      {canDelete && (
-        <div className="letter-select-toolbar no-print">
-          <span>{selectedIds.length ? `${selectedIds.length}개 선택됨` : "드래그해서 편지 선택"}</span>
+    <div className={`sticky-board-shell ${canDelete ? "letter-box-select-area" : ""}`} onPointerDown={beginSelection}>
+      {selectionBox && canDelete && (
+        <div
+          className="letter-selection-box no-print"
+          style={{
+            left: selectionBox.left,
+            top: selectionBox.top,
+            width: selectionBox.width,
+            height: selectionBox.height,
+          }}
+        />
+      )}
+
+      {canDelete && selectedIds.length > 0 && (
+        <div className="letter-bulk-toolbar no-print">
+          <span>{selectedIds.length}개 선택됨</span>
           <button type="button" onClick={selectAll}>{allSelected ? "전체 선택됨" : "전체 선택"}</button>
-          <button type="button" className="danger" disabled={!selectedIds.length} onClick={deleteSelected}>선택 삭제</button>
+          <button type="button" className="danger" onClick={deleteSelected}>선택 삭제</button>
           <button type="button" className="danger-soft" onClick={deleteAll}>전체 삭제</button>
-          <button type="button" disabled={!selectedIds.length} onClick={() => setSelectedIds([])}>선택 해제</button>
+          <button type="button" onClick={() => setSelectedIds([])}>선택 해제</button>
+          <em>Backspace/Delete로도 삭제</em>
         </div>
       )}
+
       <div className={`sticky-board ${canDelete ? "sticky-board-selectable" : ""}`}>
         {letters.map((letter, index) => {
           const textLength = `${letter.writer_name}\n${letter.content}`.length;
@@ -1813,15 +1912,11 @@ function StickyBoard({ letters, setEditingLetter, canDelete = false, onDelete, o
             <article
               className={`sticky-note ${noteColors[index % noteColors.length]} ${noteTilts[index % noteTilts.length]} ${sizeClass} ${isSelected ? "selected" : ""}`}
               key={letter.id}
-              onPointerDown={(event) => {
-                if (!canDelete || event.target.closest("button")) return;
-                event.preventDefault();
-                toggleLetter(letter);
-                setIsDragSelecting(true);
-              }}
-              onPointerEnter={() => {
-                if (!canDelete || !isDragSelecting) return;
-                addLetter(letter);
+              data-letter-card="true"
+              data-letter-id={letter.id}
+              ref={(node) => {
+                if (node) noteRefs.current.set(letter.id, node);
+                else noteRefs.current.delete(letter.id);
               }}
             >
               {canDelete && <div className="sticky-select-check">{isSelected ? "✓" : ""}</div>}

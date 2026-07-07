@@ -2037,3 +2037,126 @@ body.preview-open { overflow: hidden; }
     flex: 1 1 auto;
   }
 }
+
+
+/* Admin-only drag box selection for letters */
+.letter-box-select-area {
+  position: relative;
+  cursor: crosshair;
+}
+
+.sticky-board-selectable .sticky-note {
+  cursor: default !important;
+  user-select: none;
+}
+
+.letter-selection-box {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+  border: 2px solid #2563eb;
+  background: rgba(37, 99, 235, .12);
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, .12) inset;
+  border-radius: 8px;
+}
+
+.letter-bulk-toolbar {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  max-width: min(92vw, 820px);
+  padding: 12px 14px;
+  border: 1px solid rgba(226,232,240,.96);
+  border-radius: 24px;
+  background: rgba(255,255,255,.96);
+  box-shadow: 0 18px 54px rgba(15,23,42,.18);
+  backdrop-filter: blur(12px);
+}
+
+.letter-bulk-toolbar span {
+  padding: 0 8px;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
+.letter-bulk-toolbar button {
+  border: 0;
+  border-radius: 14px;
+  padding: 11px 15px;
+  background: #f1f5f9;
+  color: #475569;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.letter-bulk-toolbar button:hover {
+  filter: brightness(.98);
+}
+
+.letter-bulk-toolbar button:first-of-type {
+  background: #020617;
+  color: #ffffff;
+}
+
+.letter-bulk-toolbar button.danger {
+  background: #ffe4e9;
+  color: #e6003c;
+}
+
+.letter-bulk-toolbar button.danger-soft {
+  background: #fff1f5;
+  color: #9f1239;
+}
+
+.letter-bulk-toolbar em {
+  color: #94a3b8;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.letter-drag-selecting,
+.letter-drag-selecting * {
+  cursor: crosshair !important;
+  user-select: none !important;
+}
+
+.sticky-note.selected {
+  outline: 3px solid #2563eb;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 6px rgba(37,99,235,.14), 0 18px 34px rgba(15,23,42,.13) !important;
+}
+
+@media print {
+  .letter-selection-box,
+  .letter-bulk-toolbar,
+  .sticky-select-check {
+    display: none !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .letter-bulk-toolbar {
+    left: 12px;
+    right: 12px;
+    bottom: 14px;
+    transform: none;
+    border-radius: 22px;
+  }
+
+  .letter-bulk-toolbar button {
+    flex: 1 1 auto;
+  }
+}
